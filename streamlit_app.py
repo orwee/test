@@ -40,7 +40,7 @@ def detect_aggregation(user_query: str):
     return None
 
 # --------------------------------------------------
-# 3. Detectar tipo de gráfico (st.bar_chart, st.line_chart, st.area_chart)
+# 3. Detectar tipo de gráfico (bar, line, area)
 # --------------------------------------------------
 def detect_chart_type(user_query: str) -> str:
     lower_q = user_query.lower()
@@ -112,11 +112,11 @@ def main():
     st.title("Ejemplo con cálculos estadísticos y gráficos nativos de Streamlit")
 
     df = load_sample_data()
-    st.write("### DataFrame Demo")
+    st.write("### DataFrame de prueba")
     st.dataframe(df)
 
     user_query = st.text_input(
-        "¿Qué deseas? (Ej: 'Muéstrame la media del volume', 'Quiero un gráfico de barras con el tvl')",
+        "Ejemplo: 'Muéstrame la media del volume' o 'Quiero un gráfico de barras con el tvl'",
         value="Muéstrame el máximo del volume"
     )
 
@@ -148,7 +148,6 @@ def main():
             st.write(f"**Tipo de gráfico detectado:** {chart_type}")
             st.write(f"**Métrica:** {metric_col}")
             plot_with_streamlit_builtin_charts(df, chart_type, metric_col)
-
 
 if __name__ == "__main__":
     main()
