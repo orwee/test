@@ -1,16 +1,10 @@
-
 import streamlit as st
 import pandas as pd
-import altair as alt
 
 # --------------------------------------------------
-# 1. Cargamos un DataFrame de prueba, totalmente local
+# 1. DataFrame local con datos ficticios
 # --------------------------------------------------
 def load_sample_data():
-    """
-    Crea un DataFrame ficticio con datos de liquidity pool pairs,
-    incluyendo volume, tvl y apr.
-    """
     sample_data = {
       "pair": ["ETH/USDT", "BTC/USDT", "ETH/DAI", "AVAX/USDT", "SOL/USDC"],
       "volume": [1500000, 3000000, 500000, 2000000, 1000000],
@@ -21,31 +15,28 @@ def load_sample_data():
     return df
 
 # --------------------------------------------------
-# 2. Detección sencilla del tipo de gráfico
+# 2. Función para detectar tipo de gráfico
+#    (bar, line, area)
 # --------------------------------------------------
 def detect_chart_type(user_query: str) -> str:
-    """
-    Identifica 'barras' / 'pastel' / 'línea' en la query.
-    Devuelve 'bar', 'pie' o 'line' para usar en Altair.
-    """
     lower_q = user_query.lower()
     if "barras" in lower_q or "bar" in lower_q:
         return "bar"
-    elif "pastel" in lower_q or "pie" in lower_q:
-        return "pie"
     elif "línea" in lower_q or "line" in lower_q:
         return "line"
+    elif "área" in lower_q or "area" in lower_q:
+        return "area"
     else:
-        return "bar"  # Por defecto
+        # Si pide "pastel" diremos que no está soportado
+        if "pastel" in lower_q or "pie" in lower_q:
+            return "unsupported_pie"
+        return "bar"  # Por defecto, bar
 
 # --------------------------------------------------
-# 3. Detección de la métrica a graficar
+# 3. Función para detectar la métrica (columna)
+#    (volume, tvl, apr)
 # --------------------------------------------------
 def detect_metric(user_query: str, df: pd.DataFrame) -> str:
-    """
-    Busca si el usuario menciona 'volume', 'tvl' o 'apr' en la query.
-    Si no encuentra nada, elige la primera columna numérica por defecto.
-    """
     lower_q = user_query.lower()
     numeric_cols = [c for c in df.columns if str(df[c].dtype).startswith(("float", "int"))]
 
@@ -56,96 +47,78 @@ def detect_metric(user_query: str, df: pd.DataFrame) -> str:
     elif "apr" in lower_q:
         return "apr" if "apr" in numeric_cols else numeric_cols[0]
     else:
-        # Por defecto, la primera columna numérica
         return numeric_cols[0] if numeric_cols else None
 
 # --------------------------------------------------
-# 4. Función para generar el gráfico dinámico en Altair
+# 4. Crear el gráfico con las funciones nativas de Streamlit
 # --------------------------------------------------
-def plot_chart_dynamic(df: pd.DataFrame, chart_type: str, metric_col: str):
+def plot_with_streamlit_builtin_charts(df: pd.DataFrame, chart_type: str, metric_col: str):
     """
-    Crea el gráfico usando altair según 'chart_type'.
-    EJE X: 'pair' (string), EJE Y: metric_col (número).
+    Usamos st.bar_chart, st.line_chart o st.area_chart sobre la métrica elegida.
+    - La columna 'pair' se usará como índice para que se vea la comparación por par
+      en el eje X (categorías).
     """
     if df.empty:
         st.warning("No hay datos para graficar.")
         return
 
-    # Validaciones mínimas
     if metric_col not in df.columns:
         st.warning(f"No se encontró la métrica '{metric_col}' en el DataFrame.")
         st.dataframe(df)
         return
 
-    if "pair" not in df.columns:
-        st.warning("No existe la columna 'pair' en el DataFrame.")
-        st.dataframe(df)
+    # Configuramos 'pair' como índice para que no se grafique como una columna numérica
+    df_plot = df.set_index("pair")
+
+    # Chequeamos que la métrica existe y sea numérica
+    if metric_col not in df_plot.columns:
+        st.warning(f"La métrica '{metric_col}' no existe en df_plot.")
+        st.dataframe(df_plot)
         return
 
-    # Construcción del chart base según el tipo
     if chart_type == "bar":
-        chart = alt.Chart(df).mark_bar().encode(
-            x=alt.X("pair:N", sort="-y"),
-            y=alt.Y(f"{metric_col}:Q"),
-            tooltip=["pair", f"{metric_col}"]
-        )
-    elif chart_type == "pie":
-        # Gráfico de pastel: se usa 'theta' y 'color'
-        chart = alt.Chart(df).mark_arc().encode(
-            theta=alt.Theta(f"{metric_col}:Q", stack=True),
-            color=alt.Color("pair:N"),
-            tooltip=["pair", f"{metric_col}"]
-        )
+        st.bar_chart(df_plot[[metric_col]])
     elif chart_type == "line":
-        # Suele usarse para series temporales,
-        # pero aquí lo forzamos con 'pair' como eje X
-        chart = alt.Chart(df.reset_index()).mark_line().encode(
-            x=alt.X("pair:N", sort=None),
-            y=alt.Y(f"{metric_col}:Q"),
-            tooltip=["pair", f"{metric_col}"]
-        )
+        st.line_chart(df_plot[[metric_col]])
+    elif chart_type == "area":
+        st.area_chart(df_plot[[metric_col]])
     else:
-        # Por defecto, barras
-        chart = alt.Chart(df).mark_bar().encode(
-            x=alt.X("pair:N", sort="-y"),
-            y=alt.Y(f"{metric_col}:Q"),
-            tooltip=["pair", f"{metric_col}"]
-        )
-
-    st.altair_chart(chart, use_container_width=True)
+        # No soportado (por ejemplo, "pastel")
+        st.error("Gráfico de pastel (pie) no está soportado en Streamlit por defecto.")
 
 # --------------------------------------------------
-# 5. Interfaz principal en Streamlit
+# 5. Interfaz principal de Streamlit
 # --------------------------------------------------
 def main():
-    st.title("Ejemplo local - Gráficos dinámicos según petición del usuario")
+    st.title("Ejemplo con gráficos nativos de Streamlit (sin Altair, sin APIs)")
 
     # Cargamos el DataFrame ficticio
     df = load_sample_data()
 
-    st.write("**DataFrame inicial (ficticio):**")
+    st.write("**DataFrame de ejemplo:**")
     st.dataframe(df)
 
+    # Campo de texto para la petición
     user_query = st.text_input(
-        "¿Qué gráfico deseas? (ej: 'barras con el volume de cada par', 'gráfico de pastel con el TVL', etc.)",
-        value="Muéstrame un gráfico de barras con el volumen de cada par"
+        "Escribe tu petición: (Ej. 'Quiero un gráfico de barras con el volume')",
+        value="Quiero un gráfico de barras con el volume"
     )
 
     if st.button("Generar gráfico"):
         if not user_query.strip():
-            st.warning("Por favor, ingresa una consulta válida.")
+            st.warning("Por favor ingresa una consulta válida")
             return
 
-        # Detectar tipo de gráfico
+        # 1) Detectamos el tipo de gráfico
         chart_type = detect_chart_type(user_query)
         st.write(f"**Tipo de gráfico detectado:** {chart_type}")
 
-        # Detectar la métrica (columna a usar en Y)
+        # 2) Detectamos la métrica
         metric_col = detect_metric(user_query, df)
         st.write(f"**Métrica detectada:** {metric_col}")
 
-        # Dibujar el gráfico
-        plot_chart_dynamic(df, chart_type, metric_col)
+        # 3) Dibujamos con funciones nativas
+        plot_with_streamlit_builtin_charts(df, chart_type, metric_col)
 
 if __name__ == "__main__":
     main()
