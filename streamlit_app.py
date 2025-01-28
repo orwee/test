@@ -10,6 +10,7 @@ import os
 def generate_investment_analysis(current_position, alternatives):
     api_key = st.secrets.get("openai_api_key")
     openai.api_key = api_key
+    client = openai(api_key=api_key)
 
     # Crear el prompt
     prompt = f"""
