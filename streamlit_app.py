@@ -68,7 +68,6 @@ def process_defi_data(result):
                                     'common_name': common_name,
                                     'module': module,
                                     'token_symbol': str(token.get('tokenSymbol', '')),
-                                    'total_supply': float(token.get('balance', 0)),
                                     'balance_usd': float(token.get('balanceUSD', 0))
                                 })
                             except (ValueError, TypeError):
@@ -128,7 +127,6 @@ def main():
                     df_display = df.copy()
 
                     # Formatear las columnas numéricas
-                    df_display['total_supply'] = df_display['total_supply'].apply(format_number)
                     df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
 
                     # Configuración de la tabla con formato mejorado
