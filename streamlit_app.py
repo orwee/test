@@ -373,11 +373,7 @@ def main():
 
     # Update the footer section at the end of main():
     st.markdown("---")
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
-    with col2:
-        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=100)
+    st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=100)
 
     st.markdown(
         """
