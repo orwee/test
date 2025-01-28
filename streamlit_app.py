@@ -164,6 +164,42 @@ def main():
         layout="wide"
     )
 
+    # Global custom CSS for fonts and button highlights
+    st.markdown(
+        """
+        <style>
+        /* Import IBM Plex Mono from Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+        /* Make absolutely everything use IBM Plex Mono */
+        html, body, [class*="css"]  {
+            font-family: 'IBM Plex Mono', monospace !important;
+        }
+
+        /* Customize button colors globally */
+        .stButton>button {
+            background-color: #A199DA !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 0.5rem 1rem !important;
+            font-family: 'IBM Plex Mono', monospace !important;
+        }
+        /* Hover, focus, and active states in the same color scheme */
+        .stButton>button:hover,
+        .stButton>button:focus,
+        .stButton>button:active {
+            background-color: #8A82C9 !important;
+            color: white !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     col1, col2 = st.columns([1, 10])
     with col1:
         st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
@@ -172,13 +208,13 @@ def main():
 
     st.sidebar.header("Settings")
 
-    # 1. Wallet address input
+    # Wallet address input
     wallet_address = st.sidebar.text_input("Wallet Address")
 
-    # 2. Hardcoded example API key (replace with your actual, or also request from user)
+    # Example API key (replace or also request from user)
     api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
 
-    # 3. Analyze with AI button
+    # Button to run the main analysis
     analyze_button = st.sidebar.button("Analyze with AI")
 
     # If the user clicks on "Analyze with AI" and has provided a wallet address
@@ -235,8 +271,8 @@ def main():
 
                     if df['balance_usd'].sum() > 0:
                         st.subheader("Balance USD Distribution")
-
                         c1, c2 = st.columns(2)
+
                         with c1:
                             df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
                             df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
@@ -298,7 +334,6 @@ def main():
                     for idx, row in df.iterrows():
                         with st.expander(f"Alternatives for {row['token_symbol']} (currently in {row['common_name']})"):
                             alternatives = get_alternatives_for_token(row['token_symbol'], llama_result)
-
                             if alternatives:
                                 df_alternatives = pd.DataFrame(alternatives)
                                 df_display = df_alternatives.copy()
@@ -335,13 +370,12 @@ def main():
                                             f"${format_number(row['balance_usd'] * apy_difference / 100)}"
                                         )
 
-                                # If you want GPT analysis, uncomment below:
-                                '''
+                                # ───────── Show the GPT analysis section here ─────────
                                 st.subheader("💡 Analysis of Alternatives")
                                 with st.spinner('Generating analysis...'):
                                     analysis = generate_investment_analysis(row, alternatives)
                                     st.markdown(analysis)
-                                '''
+
                             else:
                                 st.info("No alternatives found for this token.")
                 else:
@@ -351,7 +385,7 @@ def main():
         else:
             st.error("Could not retrieve DefiLlama data.")
 
-    # Button further down: Visit Orwee
+    # "Visit Orwee" button in sidebar, below everything else
     st.sidebar.markdown("---")
     st.sidebar.markdown(
         """
@@ -374,7 +408,7 @@ def main():
         unsafe_allow_html=True
     )
 
-    # Footer elements (centered logos, disclaimers, etc.) can remain in main page
+    # Footer elements
     st.markdown(
         """
         <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
@@ -391,100 +425,6 @@ def main():
         <div style='text-align: center'>
             <p>Developed by Orwee | Powered by DeepSeek</p>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        """
-        <style>
-        /* Import IBM Plex Mono from Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-        /* General style */
-        * {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize headers */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'IBM Plex Mono', monospace;
-            color: #A199DA;
-        }
-
-        /* Customize button colors */
-        .stButton>button {
-            background-color: #A199DA;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 0.5rem 1rem;
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        .stButton>button:hover {
-            background-color: #8A82C9;
-        }
-
-        /* Customize metrics */
-        .css-1wivap2 {
-            background-color: #A199DA20;
-            border: 1px solid #A199DA;
-            border-radius: 4px;
-            padding: 1rem;
-        }
-
-        /* Customize links */
-        a {
-            color: #A199DA !important;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: #8A82C9 !important;
-        }
-
-        /* Customize input widgets */
-        .stTextInput>div>div>input {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize selectbox */
-        .stSelectbox>div>div>select {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize expander */
-        .streamlit-expanderHeader {
-            font-family: 'IBM Plex Mono', monospace;
-            background-color: #A199DA20;
-            color: #A199DA;
-        }
-
-        /* Customize sidebar */
-        .css-1d391kg {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize dataframe */
-        .dataframe {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize metric text */
-        .css-1wivap2 label {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize tooltips */
-        .tooltip {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Customize charts */
-        .plotly-graph-div {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-        </style>
         """,
         unsafe_allow_html=True
     )
