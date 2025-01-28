@@ -4,6 +4,12 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
+def format_number(value):
+    if abs(value) >= 1e6:
+        return f"{value:,.2f}".rstrip('0').rstrip('.')
+    else:
+        return f"{value:.6f}".rstrip('0').rstrip('.')
+
 def get_user_defi_positions(address, api_key):
     base_url = "https://api-v1.mymerlin.io/api/merlin/public/userDeFiPositions/all"
     url = f"{base_url}/{address}"
@@ -76,10 +82,6 @@ def process_defi_data(result):
     df['total_supply'] = pd.to_numeric(df['total_supply'], errors='coerce').fillna(0)
     df['balance_usd'] = pd.to_numeric(df['balance_usd'], errors='coerce').fillna(0)
 
-    # Redondear valores numéricos
-    df['balance_usd'] = df['balance_usd'].round(6)
-    df['total_supply'] = df['total_supply'].round(6)
-
     return df
 
 def main():
@@ -93,32 +95,38 @@ def main():
 
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
-    api_key = st.sidebar.text_input("API Key", type="password")
+    api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
 
     if wallet_address and api_key:
         st.write(f"Wallet conectada: {wallet_address}")
 
-        # Obtener datos
         result = get_user_defi_positions(wallet_address, api_key)
 
         if 'error' not in result:
             try:
-                # Procesar datos y crear DataFrame
                 df = process_defi_data(result)
 
                 if not df.empty:
-                    # Mostrar tabla
                     st.subheader("Posiciones DeFi")
-                    st.dataframe(df)
 
-                    # Crear y mostrar gráfico de tortas
-                    if df['balance_usd'].sum() > 0:
-                        st.subheader("Distribución de Balance USD por Protocol")
-                        fig = px.pie(df,
-                                   values='balance_usd',
-                                   names='common_name',
-                                   title='Distribución de Balance USD por Protocolo')
-                        st.plotly_chart(fig)
+                    # Formatear las columnas numéricas
+                    df_display = df.copy()
+                    df_display['total_supply'] = df_display['total_supply'].apply(format_number)
+                    df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
+
+                    # Mostrar la tabla formateada
+                    st.dataframe(
+                        df_display,
+                        column_config={
+                            "chain": "Chain",
+                            "common_name": "Protocol",
+                            "module": "Module",
+                            "token_symbol": "Token",
+                            "total_supply": "Total Supply",
+                            "balance_usd": "Balance USD"
+                        },
+                        hide_index=True
+                    )
                     else:
                         st.warning("No hay datos de balance USD para mostrar en el gráfico")
                 else:
