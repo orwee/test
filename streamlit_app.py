@@ -1,8 +1,7 @@
-# main.py
+
 import streamlit as st
 import pandas as pd
 import requests
-from typing import Dict, List
 import json
 from datetime import datetime
 
