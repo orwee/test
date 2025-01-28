@@ -433,6 +433,143 @@ def main():
             """,
             unsafe_allow_html=True
         )
+
+        # Agregar esto al inicio de tu aplicación, después de st.set_page_config
+        st.markdown(
+            """
+            <style>
+            /* Importar IBM Plex Mono desde Google Fonts */
+            @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+        
+            /* Estilo general */
+            * {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar los headers */
+            h1, h2, h3, h4, h5, h6 {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar el color de los botones */
+            .stButton>button {
+                background-color: #A199DA;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 0.5rem 1rem;
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            .stButton>button:hover {
+                background-color: #8A82C9;
+            }
+        
+            /* Personalizar métricas */
+            .css-1wivap2 {
+                background-color: #A199DA20;
+                border: 1px solid #A199DA;
+                border-radius: 4px;
+                padding: 1rem;
+            }
+        
+            /* Personalizar enlaces */
+            a {
+                color: #A199DA !important;
+            }
+        
+            a:hover {
+                color: #8A82C9 !important;
+            }
+        
+            /* Personalizar widgets de entrada */
+            .stTextInput>div>div>input {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar selectbox */
+            .stSelectbox>div>div>select {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar expander */
+            .streamlit-expanderHeader {
+                font-family: 'IBM Plex Mono', monospace;
+                background-color: #A199DA20;
+            }
+        
+            /* Personalizar sidebar */
+            .css-1d391kg {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar dataframe */
+            .dataframe {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar texto de métricas */
+            .css-1wivap2 label {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+        
+            /* Personalizar tooltips */
+            .tooltip {
+                font-family: 'IBM Plex Mono', monospace;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Modificar la configuración de los gráficos de Plotly
+        plot_config = {
+            'layout': {
+                'font_family': 'IBM Plex Mono',
+                'plot_bgcolor': 'rgba(0,0,0,0)',
+                'paper_bgcolor': 'rgba(0,0,0,0)',
+                'colorway': ['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
+            }
+        }
+        
+        # En tus gráficos de torta, actualiza el diseño:
+        fig1.update_layout(
+            font_family='IBM Plex Mono',
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
+            height=500
+        )
+        
+        fig2.update_layout(
+            font_family='IBM Plex Mono',
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
+            height=500
+        )
+        
+        # Para el botón de Orwee.io en la sidebar:
+        st.sidebar.markdown(
+            """
+            <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
+                <button style="
+                    background-color: #A199DA;
+                    color: white;
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-family: 'IBM Plex Mono', monospace;
+                    width: 100%;
+                    margin: 10px 0;
+                    ">
+                    Visitar Orwee.io 🌐
+                </button>
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
     
 if __name__ == "__main__":
     main()
