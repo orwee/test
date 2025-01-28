@@ -90,6 +90,9 @@ def process_defi_data(result):
     df['total_supply'] = pd.to_numeric(df['total_supply'], errors='coerce').fillna(0)
     df['balance_usd'] = pd.to_numeric(df['balance_usd'], errors='coerce').fillna(0)
 
+    # Filtrar por balance USD mayor a \$5
+    df = df[df['balance_usd'] > 5]
+
     # Redondear valores numéricos
     df['balance_usd'] = df['balance_usd'].round(6)
     df['total_supply'] = df['total_supply'].round(6)
