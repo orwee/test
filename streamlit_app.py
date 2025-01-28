@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 import numpy as np
-from openai import OpenAI
+import openai
 import os
 
 # Nueva función para generar el análisis con GPT
