@@ -204,7 +204,7 @@ def main():
     api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
 
     if wallet_address and api_key:
-        st.write(f"Wallet conectada: {wallet_address}")
+        #st.write(f"Wallet conectada: {wallet_address}")
 
         # Obtener datos
         result = get_user_defi_positions(wallet_address, api_key)
