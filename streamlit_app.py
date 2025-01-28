@@ -373,8 +373,11 @@ def main():
 
     # Update the footer section at the end of main():
     st.markdown("---")
-    st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=100)
-
+    # Centrar la imagen usando columnas
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=150)
+    
     st.markdown(
         """
         <div style='text-align: center'>
