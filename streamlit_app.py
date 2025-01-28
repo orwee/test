@@ -377,7 +377,7 @@ def main():
         # Usar HTML para centrar la imagen
         st.markdown(
             """
-            <div style="text-align: center; margin-top: 50px; margin-bottom: 50px;">
+            <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
                 <img src="https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75"
                      alt="DeepSeek Logo"
                      width="150"
