@@ -372,7 +372,7 @@ def main():
 
                                 
                                 # ───────── Show the GPT analysis section here ─────────
-                                # st.subheader("💡 Analysis of Alternatives")
+                                st.subheader("💡 Analysis of Alternatives")
                                 # with st.spinner('Generating analysis...'):
                                     # analysis = generate_investment_analysis(row, alternatives)
                                     # st.markdown(analysis)
