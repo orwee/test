@@ -8,8 +8,8 @@ import os
 
 # Nueva función para generar el análisis con GPT
 def generate_investment_analysis(current_position, alternatives):
-    
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Mejor usar st.secrets o variables de entorno
+    api=os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=api)  # Mejor usar st.secrets o variables de entorno
 
     # Crear el prompt
     prompt = f"""
