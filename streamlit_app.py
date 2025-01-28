@@ -255,6 +255,7 @@ def main():
                     )
 
                     # Reemplaza la sección del gráfico original con esto:
+                    # Ejemplo de gráficos personalizados
                     if df['balance_usd'].sum() > 0:
                         st.subheader("Distribución de Balance USD")
                     
@@ -275,16 +276,7 @@ def main():
                                 labels={'balance_usd': 'Balance USD'}
                             )
                     
-                            # Personalizar el diseño del gráfico
-                            fig1.update_traces(
-                                textposition='inside',
-                                textinfo='percent+label'
-                            )
-                            fig1.update_layout(
-                                showlegend=True,
-                                height=500
-                            )
-                    
+                            fig1 = customize_plotly(fig1)
                             st.plotly_chart(fig1, use_container_width=True)
                     
                         with col2:
@@ -301,16 +293,7 @@ def main():
                                 labels={'balance_usd': 'Balance USD'}
                             )
                     
-                            # Personalizar el diseño del gráfico
-                            fig2.update_traces(
-                                textposition='inside',
-                                textinfo='percent+label'
-                            )
-                            fig2.update_layout(
-                                showlegend=True,
-                                height=500
-                            )
-                    
+                            fig2 = customize_plotly(fig2)
                             st.plotly_chart(fig2, use_container_width=True)
                     
                         # Mostrar estadísticas adicionales
@@ -330,6 +313,8 @@ def main():
                                 "Número de Posiciones",
                                 len(df)
                             )
+                    else:
+                        st.warning("No hay datos de balance USD para mostrar en el gráfico")
                     else:
                         st.warning("No hay datos de balance USD para mostrar en el gráfico")
                 else:
