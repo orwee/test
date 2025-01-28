@@ -373,19 +373,25 @@ def main():
         else:
             st.error("No se pudieron obtener datos de DefiLlama")
 
-    # Update the footer section at the end of main():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=300)
-    
-    st.markdown(
-        """
-        <div style='text-align: center'>
-            <p>Developed by Orwee | Powered by DeepSeek</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        
+        # Usar HTML para centrar la imagen
+        st.markdown(
+            """
+            <div style="text-align: center;">
+                <img src="https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75" alt="DeepSeek Logo" width="150">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        st.markdown(
+            """
+            <div style='text-align: center'>
+                <p>Developed by Orwee | Powered by DeepSeek</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     
 if __name__ == "__main__":
     main()
