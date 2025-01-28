@@ -254,6 +254,18 @@ def main():
                         use_container_width=True
                     )
 
+                    # Configuración de gráficos Plotly
+                    def customize_plotly(fig):
+                        fig.update_layout(
+                            font_family='IBM Plex Mono',
+                            font_color='#A199DA',
+                            title_font_size=18,
+                            title_font_color='#A199DA',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
+                        )
+                        return fig
                     # Reemplaza la sección del gráfico original con esto:
                     if df['balance_usd'].sum() > 0:
                         st.subheader("Distribución de Balance USD")
