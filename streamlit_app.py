@@ -4,6 +4,44 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
+# Añade esta nueva función después de get_user_defi_positions
+def get_defi_llama_yields():
+    url = "https://yields.llama.fi/pools"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"Error {response.status_code}: {response.text}"}
+    except Exception as e:
+        return {"error": f"Exception occurred: {str(e)}"}
+
+def get_alternatives_for_token(token_symbol, llama_data, n=3):
+    """
+    Busca las mejores alternativas en DefiLlama para un token específico.
+    """
+    if not llama_data or 'data' not in llama_data:
+        return []
+
+    # Separar tokens si es un par de liquidez
+    tokens = token_symbol.split('/')
+
+    alternatives = []
+    for pool in llama_data['data']:
+        # Comprobar si el símbolo del pool coincide con alguno de los tokens
+        if any(token.upper() in pool['symbol'].upper() for token in tokens):
+            alternatives.append({
+                'symbol': pool['symbol'],
+                'project': pool['project'],
+                'chain': pool['chain'],
+                'apy': pool.get('apy', 0),
+                'tvlUsd': pool.get('tvlUsd', 0)
+            })
+
+    # Ordenar por APY descendente y tomar los top n
+    alternatives.sort(key=lambda x: x['apy'], reverse=True)
+    return alternatives[:n]
+    
 def format_number(value):
     if abs(value) >= 1e6:
         return f"{value:,.2f}".rstrip('0').rstrip('.')
@@ -215,6 +253,61 @@ def main():
                 st.error(f"Error al procesar los datos: {str(e)}")
         else:
             st.error(f"Error al obtener datos: {result['error']}")
+
+        llama_result = get_defi_llama_yields()
+
+        if 'error' not in llama_result:
+            st.subheader("🔄 Alternativas de inversión en DeFi")
+
+            # Para cada posición en el portafolio
+            for idx, row in df.iterrows():
+                with st.expander(f"Alternativas para {row['token_symbol']} (actual en {row['common_name']})"):
+                    alternatives = get_alternatives_for_token(row['token_symbol'], llama_result)
+
+                    if alternatives:
+                        # Crear un DataFrame con las alternativas
+                        df_alternatives = pd.DataFrame(alternatives)
+
+                        # Formatear las columnas
+                        df_display = df_alternatives.copy()
+                        df_display['apy'] = df_display['apy'].apply(lambda x: f"{x:.2f}%")
+                        df_display['tvlUsd'] = df_display['tvlUsd'].apply(lambda x: f"${format_number(x)}")
+
+                        # Mostrar la tabla de alternativas
+                        st.dataframe(
+                            df_display,
+                            column_config={
+                                "symbol": "Token",
+                                "project": "Protocolo",
+                                "chain": "Blockchain",
+                                "apy": "APY",
+                                "tvlUsd": "TVL"
+                            },
+                            hide_index=True,
+                            use_container_width=True
+                        )
+
+                        # Mostrar métricas comparativas
+                        if len(alternatives) > 0:
+                            mejor_apy = alternatives[0]['apy']
+                            diferencia_apy = mejor_apy - 0  # Aquí podrías comparar con el APY actual si lo tienes
+
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric(
+                                    "Mejor APY disponible",
+                                    f"{mejor_apy:.2f}%",
+                                    f"+{diferencia_apy:.2f}%" if diferencia_apy > 0 else f"{diferencia_apy:.2f}%"
+                                )
+                            with col2:
+                                st.metric(
+                                    "Potencial ganancia adicional anual",
+                                    f"${format_number(row['balance_usd'] * diferencia_apy / 100)}"
+                                )
+                    else:
+                        st.info("No se encontraron alternativas para este token")
+        else:
+            st.error("No se pudieron obtener datos de DefiLlama")
 
     # Añadir información adicional en el footer
     st.markdown("---")
