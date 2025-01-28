@@ -370,13 +370,13 @@ def main():
                                             f"${format_number(row['balance_usd'] * apy_difference / 100)}"
                                         )
 
-                                '''
+                                
                                 # ───────── Show the GPT analysis section here ─────────
-                                st.subheader("💡 Analysis of Alternatives")
-                                with st.spinner('Generating analysis...'):
-                                    analysis = generate_investment_analysis(row, alternatives)
-                                    st.markdown(analysis)
-                                '''
+                                # st.subheader("💡 Analysis of Alternatives")
+                                # with st.spinner('Generating analysis...'):
+                                    # analysis = generate_investment_analysis(row, alternatives)
+                                    # st.markdown(analysis)
+                                
 
                             else:
                                 st.info("No alternatives found for this token.")
