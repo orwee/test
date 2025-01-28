@@ -315,8 +315,6 @@ def main():
                             )
                     else:
                         st.warning("No hay datos de balance USD para mostrar en el gráfico")
-                    else:
-                        st.warning("No hay datos de balance USD para mostrar en el gráfico")
                 else:
                     st.warning("No se encontraron datos para mostrar")
             except Exception as e:
