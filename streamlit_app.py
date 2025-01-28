@@ -95,38 +95,107 @@ def main():
 
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
-    api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
+    api_key = 'uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK'
 
     if wallet_address and api_key:
         st.write(f"Wallet conectada: {wallet_address}")
 
+        # Obtener datos
         result = get_user_defi_positions(wallet_address, api_key)
 
         if 'error' not in result:
             try:
+                # Procesar datos y crear DataFrame
                 df = process_defi_data(result)
 
                 if not df.empty:
+                    # Mostrar tabla
                     st.subheader("Posiciones DeFi")
 
-                    # Formatear las columnas numéricas
-                    df_display = df.copy()
-                    df_display['total_supply'] = df_display['total_supply'].apply(format_number)
-                    df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
-
-                    # Mostrar la tabla formateada
+                    # Configuración de la tabla con formato mejorado
                     st.dataframe(
-                        df_display,
+                        df,
                         column_config={
-                            "chain": "Chain",
-                            "common_name": "Protocol",
-                            "module": "Module",
-                            "token_symbol": "Token",
-                            "total_supply": "Total Supply",
-                            "balance_usd": "Balance USD"
+                            "chain": st.column_config.TextColumn(
+                                "Chain",
+                                help="Blockchain network"
+                            ),
+                            "common_name": st.column_config.TextColumn(
+                                "Protocol",
+                                help="DeFi protocol name"
+                            ),
+                            "module": st.column_config.TextColumn(
+                                "Module",
+                                help="Type of DeFi position"
+                            ),
+                            "token_symbol": st.column_config.TextColumn(
+                                "Token",
+                                help="Token symbol"
+                            ),
+                            "total_supply": st.column_config.NumberColumn(
+                                "Total Supply",
+                                help="Total token supply",
+                                format="%.6f"
+                            ),
+                            "balance_usd": st.column_config.NumberColumn(
+                                "Balance USD",
+                                help="Value in USD",
+                                format="$%.6f"
+                            )
                         },
-                        hide_index=True
+                        hide_index=True,
+                        use_container_width=True
                     )
+
+                    # Crear y mostrar gráfico de tortas
+                    if df['balance_usd'].sum() > 0:
+                        st.subheader("Distribución de Balance USD por Protocol")
+
+                        # Agregar los datos por protocolo
+                        df_grouped = df.groupby('common_name')['balance_usd'].sum().reset_index()
+                        df_grouped = df_grouped[df_grouped['balance_usd'] > 0]  # Filtrar solo valores positivos
+
+                        # Crear el gráfico de tortas
+                        fig = px.pie(
+                            df_grouped,
+                            values='balance_usd',
+                            names='common_name',
+                            title='Distribución de Balance USD por Protocolo',
+                            hover_data=['balance_usd'],
+                            labels={'balance_usd': 'Balance USD'}
+                        )
+
+                        # Personalizar el diseño del gráfico
+                        fig.update_traces(
+                            textposition='inside',
+                            textinfo='percent+label'
+                        )
+                        fig.update_layout(
+                            showlegend=True,
+                            width=800,
+                            height=500
+                        )
+
+                        # Mostrar el gráfico
+                        st.plotly_chart(fig, use_container_width=True)
+
+                        # Mostrar estadísticas adicionales
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric(
+                                "Balance Total USD",
+                                f"${df['balance_usd'].sum():,.2f}"
+                            )
+                        with col2:
+                            st.metric(
+                                "Número de Protocolos",
+                                len(df['common_name'].unique())
+                            )
+                        with col3:
+                            st.metric(
+                                "Número de Posiciones",
+                                len(df)
+                            )
                     else:
                         st.warning("No hay datos de balance USD para mostrar en el gráfico")
                 else:
@@ -135,6 +204,18 @@ def main():
                 st.error(f"Error al procesar los datos: {str(e)}")
         else:
             st.error(f"Error al obtener datos: {result['error']}")
+
+    # Añadir información adicional en el footer
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style='text-align: center'>
+            <p>Desarrollado con ❤️ por Tu Nombre</p>
+            <p style='font-size: small'>Powered by Solana</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
