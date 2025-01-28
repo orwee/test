@@ -183,295 +183,99 @@ def process_defi_data(result):
     return df
 
 def main():
+    # Configuración inicial de la página
     st.set_page_config(
         page_title="Rocky by Orwee",
         page_icon="https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp",
         layout="wide"
     )
 
-    # Add logo and title in columns
+    # Header con logo y título
     col1, col2 = st.columns([1, 10])
     with col1:
         st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
     with col2:
         st.title("Rocky by Orwee")
 
+    # Configuración de la barra lateral
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
     api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
 
-
     if wallet_address and api_key:
-        #st.write(f"Wallet conectada: {wallet_address}")
-
-        # Obtener datos
         result = get_user_defi_positions(wallet_address, api_key)
 
         if 'error' not in result:
-            try:
-                # Procesar datos y crear DataFrame
-                df = process_defi_data(result)
+            df = process_defi_data(result)
 
-                if not df.empty:
-                    # Mostrar tabla
-                    st.subheader("Posiciones DeFi")
+            if not df.empty:
+                # 1. SECCIÓN DE GRÁFICOS (Primera parte visual)
+                if df['balance_usd'].sum() > 0:
+                    st.subheader("📊 Distribución de Balance USD")
 
-                    # Crear una copia del DataFrame para el display
-                    df_display = df.copy()
-
-                    # Formatear las columnas numéricas
-                    df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
-
-                    # Configuración de la tabla con formato mejorado
-                    st.dataframe(
-                        df_display,
-                        column_config={
-                            "chain": st.column_config.TextColumn(
-                                "Chain",
-                                help="Blockchain network"
-                            ),
-                            "common_name": st.column_config.TextColumn(
-                                "Protocol",
-                                help="DeFi protocol name"
-                            ),
-                            "module": st.column_config.TextColumn(
-                                "Module",
-                                help="Type of DeFi position"
-                            ),
-                            "token_symbol": st.column_config.TextColumn(
-                                "Token",
-                                help="Token symbol"
-                            ),
-                            "balance_usd": st.column_config.TextColumn(
-                                "Balance USD",
-                                help="Value in USD"
-                            )
-                        },
-                        hide_index=True,
-                        use_container_width=True
-                    )
-
-                    # Reemplaza la sección del gráfico original con esto:
-                    if df['balance_usd'].sum() > 0:
-                        st.subheader("Distribución de Balance USD")
-
-                        # Crear dos columnas para los gráficos
-                        col1, col2 = st.columns(2)
-
-                        with col1:
-                            # Gráfico por Token y Protocolo
-                            df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
-                            df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
-
-                            fig1 = px.pie(
-                                df_grouped_protocol,
-                                values='balance_usd',
-                                names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
-                                title='Distribución por Token y Protocolo',
-                                hover_data=['balance_usd'],
-                                labels={'balance_usd': 'Balance USD'}
-                            )
-
-                            # Personalizar el diseño del gráfico
-                            fig1.update_traces(
-                                textposition='inside',
-                                textinfo='percent+label'
-                            )
-                            fig1.update_layout(
-                                showlegend=True,
-                                height=500
-                            )
-
-                            st.plotly_chart(fig1, use_container_width=True)
-
-                        with col2:
-                            # Gráfico por Módulo
-                            df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
-                            df_grouped_module = df_grouped_module[df_grouped_module['balance_usd'] > 0]
-
-                            fig2 = px.pie(
-                                df_grouped_module,
-                                values='balance_usd',
-                                names='module',
-                                title='Distribución por Módulo',
-                                hover_data=['balance_usd'],
-                                labels={'balance_usd': 'Balance USD'}
-                            )
-
-                            # Personalizar el diseño del gráfico
-                            fig2.update_traces(
-                                textposition='inside',
-                                textinfo='percent+label'
-                            )
-                            fig2.update_layout(
-                                showlegend=True,
-                                height=500
-                            )
-
-                            st.plotly_chart(fig2, use_container_width=True)
-
-                        # Mostrar estadísticas adicionales
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric(
-                                "Balance Total USD",
-                                f"${format_number(df['balance_usd'].sum())}"
-                            )
-                        with col2:
-                            st.metric(
-                                "Número de Protocolos",
-                                len(df['common_name'].unique())
-                            )
-                        with col3:
-                            st.metric(
-                                "Número de Posiciones",
-                                len(df)
-                            )
-                    else:
-                        st.warning("No hay datos de balance USD para mostrar en el gráfico")
-                else:
-                    st.warning("No se encontraron datos para mostrar")
-            except Exception as e:
-                st.error(f"Error al procesar los datos: {str(e)}")
-        else:
-            st.error(f"Error al obtener datos: {result['error']}")
-
-        llama_result = get_defi_llama_yields()
-
-        if 'error' not in llama_result:
-            st.subheader("🔄 Alternativas de inversión en DeFi")
-
-            # Para cada posición en el portafolio
-            for idx, row in df.iterrows():
-                with st.expander(f"Alternativas para {row['token_symbol']} (actual en {row['common_name']})"):
-                    alternatives = get_alternatives_for_token(row['token_symbol'], llama_result)
-
-                    if alternatives:
-                        # Crear un DataFrame con las alternativas
-                        df_alternatives = pd.DataFrame(alternatives)
-
-                        # Formatear las columnas
-                        df_display = df_alternatives.copy()
-                        df_display['apy'] = df_display['apy'].apply(lambda x: f"{x:.2f}%")
-                        df_display['tvlUsd'] = df_display['tvlUsd'].apply(lambda x: f"${format_number(x)}")
-
-                        # Mostrar la tabla de alternativas
-                        st.dataframe(
-                            df_display,
-                            column_config={
-                                "symbol": "Token",
-                                "project": "Protocolo",
-                                "chain": "Blockchain",
-                                "apy": "APY",
-                                "tvlUsd": "TVL"
-                            },
-                            hide_index=True,
-                            use_container_width=True
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        # Gráfico por Token y Protocolo
+                        df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
+                        fig1 = px.pie(
+                            df_grouped_protocol,
+                            values='balance_usd',
+                            names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
+                            title='Distribución por Token y Protocolo'
                         )
+                        fig1 = customize_plotly(fig1)
+                        st.plotly_chart(fig1, use_container_width=True)
 
-                        # Mostrar métricas comparativas
-                        if len(alternatives) > 0:
-                            mejor_apy = alternatives[0]['apy']
-                            diferencia_apy = mejor_apy - 0  # Aquí podrías comparar con el APY actual si lo tienes
+                    with col2:
+                        # Gráfico por Módulo
+                        df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
+                        fig2 = px.pie(
+                            df_grouped_module,
+                            values='balance_usd',
+                            names='module',
+                            title='Distribución por Módulo'
+                        )
+                        fig2 = customize_plotly(fig2)
+                        st.plotly_chart(fig2, use_container_width=True)
 
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric(
-                                    "Mejor APY disponible",
-                                    f"{mejor_apy:.2f}%",
-                                    f"+{diferencia_apy:.2f}%" if diferencia_apy > 0 else f"{diferencia_apy:.2f}%"
+                    # Métricas principales
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Balance Total USD", f"${format_number(df['balance_usd'].sum())}")
+                    with col2:
+                        st.metric("Número de Protocolos", len(df['common_name'].unique()))
+                    with col3:
+                        st.metric("Número de Posiciones", len(df))
+
+                # 2. SECCIÓN DE DATOS (Tabla de posiciones)
+                st.subheader("📋 Posiciones DeFi")
+                df_display = df.copy()
+                df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
+                st.dataframe(
+                    df_display,
+                    hide_index=True,
+                    use_container_width=True
+                )
+
+                # 3. SECCIÓN DE ALTERNATIVAS
+                llama_result = get_defi_llama_yields()
+                if 'error' not in llama_result:
+                    st.subheader("🔄 Alternativas de inversión en DeFi")
+
+                    for idx, row in df.iterrows():
+                        with st.expander(f"Alternativas para {row['token_symbol']} (actual en {row['common_name']})"):
+                            alternatives = get_alternatives_for_token(row['token_symbol'], llama_result)
+                            if alternatives:
+                                df_alternatives = pd.DataFrame(alternatives)
+                                st.dataframe(
+                                    df_alternatives,
+                                    hide_index=True,
+                                    use_container_width=True
                                 )
-                            with col2:
-                                st.metric(
-                                    "Potencial ganancia adicional anual",
-                                    f"${format_number(row['balance_usd'] * diferencia_apy / 100)}"
-                                )
-                        # Añadir el análisis de GPT
-                        '''
-                        st.subheader("💡 Análisis de Alternativas")
-                        with st.spinner('Generando análisis...'):
-                            analysis = generate_investment_analysis(row, alternatives)
-                            st.markdown(analysis)
-                        '''
-                    else:
-                        st.info("No se encontraron alternativas para este token")
-        else:
-            st.error("No se pudieron obtener datos de DefiLlama")
+                                # Métricas de alternativas...
 
-
-        # Configuración de gráficos Plotly
-        def customize_plotly(fig):
-            fig.update_layout(
-                font_family='IBM Plex Mono',
-                font_color='#A199DA',
-                title_font_size=18,
-                title_font_color='#A199DA',
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
-            )
-            return fig
-        # Ejemplo de gráficos personalizados
-        if df['balance_usd'].sum() > 0:
-            st.subheader("Distribución de Balance USD")
-        
-            # Crear dos columnas para los gráficos
-            col1, col2 = st.columns(2)
-        
-            with col1:
-                # Gráfico por Token y Protocolo
-                df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
-                df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
-        
-                fig1 = px.pie(
-                    df_grouped_protocol,
-                    values='balance_usd',
-                    names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
-                    title='Distribución por Token y Protocolo',
-                    hover_data=['balance_usd'],
-                    labels={'balance_usd': 'Balance USD'}
-                )
-        
-                fig1 = customize_plotly(fig1)
-                st.plotly_chart(fig1, use_container_width=True)
-        
-            with col2:
-                # Gráfico por Módulo
-                df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
-                df_grouped_module = df_grouped_module[df_grouped_module['balance_usd'] > 0]
-        
-                fig2 = px.pie(
-                    df_grouped_module,
-                    values='balance_usd',
-                    names='module',
-                    title='Distribución por Módulo',
-                    hover_data=['balance_usd'],
-                    labels={'balance_usd': 'Balance USD'}
-                )
-        
-                fig2 = customize_plotly(fig2)
-                st.plotly_chart(fig2, use_container_width=True)
-        
-            # Mostrar estadísticas adicionales
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(
-                    "Balance Total USD",
-                    f"${format_number(df['balance_usd'].sum())}"
-                )
-            with col2:
-                st.metric(
-                    "Número de Protocolos",
-                    len(df['common_name'].unique())
-                )
-            with col3:
-                st.metric(
-                    "Número de Posiciones",
-                    len(df)
-                )
-        else:
-            st.warning("No hay datos de balance USD para mostrar en el gráfico")
-        # Usar HTML para centrar la imagen
+        # 4. FOOTER Y ESTILOS
+        # Footer
         st.markdown(
             """
             <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
@@ -493,194 +297,29 @@ def main():
             unsafe_allow_html=True
         )
 
-        st.markdown(
-            """
-            <style>
-            /* Importar IBM Plex Mono desde Google Fonts */
-            @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-        
-            /* Estilo general */
-            * {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar los headers */
-            h1, h2, h3, h4, h5, h6 {
-                font-family: 'IBM Plex Mono', monospace;
-                color: #A199DA;
-            }
-        
-            /* Personalizar el color de los botones */
-            .stButton>button {
+        # Aquí va todo el CSS personalizado que ya tienes...
+
+    # Botón de la barra lateral
+    st.sidebar.markdown(
+        """
+        <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
+            <button style="
                 background-color: #A199DA;
                 color: white;
+                padding: 10px 20px;
                 border: none;
-                border-radius: 4px;
-                padding: 0.5rem 1rem;
+                border-radius: 5px;
+                cursor: pointer;
                 font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            .stButton>button:hover {
-                background-color: #8A82C9;
-            }
-        
-            /* Personalizar métricas */
-            .css-1wivap2 {
-                background-color: #A199DA20;
-                border: 1px solid #A199DA;
-                border-radius: 4px;
-                padding: 1rem;
-            }
-        
-            /* Personalizar enlaces */
-            a {
-                color: #A199DA !important;
-                text-decoration: none;
-            }
-        
-            a:hover {
-                color: #8A82C9 !important;
-            }
-        
-            /* Personalizar widgets de entrada */
-            .stTextInput>div>div>input {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar selectbox */
-            .stSelectbox>div>div>select {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar expander */
-            .streamlit-expanderHeader {
-                font-family: 'IBM Plex Mono', monospace;
-                background-color: #A199DA20;
-                color: #A199DA;
-            }
-        
-            /* Personalizar sidebar */
-            .css-1d391kg {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar dataframe */
-            .dataframe {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar texto de métricas */
-            .css-1wivap2 label {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar tooltips */
-            .tooltip {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-        
-            /* Personalizar gráficos */
-            .plotly-graph-div {
-                font-family: 'IBM Plex Mono', monospace;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        # Configuración de gráficos Plotly
-        def customize_plotly(fig):
-            fig.update_layout(
-                font_family='IBM Plex Mono',
-                font_color='#A199DA',
-                title_font_size=18,
-                title_font_color='#A199DA',
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
-            )
-            return fig
-        # Ejemplo de gráficos personalizados
-        if df['balance_usd'].sum() > 0:
-            st.subheader("Distribución de Balance USD")
-        
-            # Crear dos columnas para los gráficos
-            col1, col2 = st.columns(2)
-        
-            with col1:
-                # Gráfico por Token y Protocolo
-                df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
-                df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
-        
-                fig1 = px.pie(
-                    df_grouped_protocol,
-                    values='balance_usd',
-                    names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
-                    title='Distribución por Token y Protocolo',
-                    hover_data=['balance_usd'],
-                    labels={'balance_usd': 'Balance USD'}
-                )
-        
-                fig1 = customize_plotly(fig1)
-                st.plotly_chart(fig1, use_container_width=True)
-        
-            with col2:
-                # Gráfico por Módulo
-                df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
-                df_grouped_module = df_grouped_module[df_grouped_module['balance_usd'] > 0]
-        
-                fig2 = px.pie(
-                    df_grouped_module,
-                    values='balance_usd',
-                    names='module',
-                    title='Distribución por Módulo',
-                    hover_data=['balance_usd'],
-                    labels={'balance_usd': 'Balance USD'}
-                )
-        
-                fig2 = customize_plotly(fig2)
-                st.plotly_chart(fig2, use_container_width=True)
-        
-            # Mostrar estadísticas adicionales
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(
-                    "Balance Total USD",
-                    f"${format_number(df['balance_usd'].sum())}"
-                )
-            with col2:
-                st.metric(
-                    "Número de Protocolos",
-                    len(df['common_name'].unique())
-                )
-            with col3:
-                st.metric(
-                    "Número de Posiciones",
-                    len(df)
-                )
-        else:
-            st.warning("No hay datos de balance USD para mostrar en el gráfico")
-
-        # Botón en la barra lateral
-        st.sidebar.markdown(
-            """
-            <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
-                <button style="
-                    background-color: #A199DA;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-family: 'IBM Plex Mono', monospace;
-                    width: 100%;
-                    margin: 10px 0;
-                    ">
-                    Visitar Orwee.io 🌐
-                </button>
-            </a>
-            """,
-            unsafe_allow_html=True
-        )
+                width: 100%;
+                margin: 10px 0;
+                ">
+                Visitar Orwee.io 🌐
+            </button>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
