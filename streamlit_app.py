@@ -193,7 +193,7 @@ def main():
     )
 
     # Add logo and title in columns
-    col1, col2 = st.columns([1, 4])
+    col1, col2 = st.columns([1, 1])
     with col1:
         st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
     with col2:
