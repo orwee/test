@@ -95,7 +95,7 @@ def main():
 
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
-    api_key = st.sidebar.text_input("API Key", type="password")
+    api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
 
     if wallet_address and api_key:
         st.write(f"Wallet conectada: {wallet_address}")
