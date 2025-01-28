@@ -29,7 +29,7 @@ def get_user_defi_positions(address, api_key):
 def process_defi_data(result):
     # Validar que el resultado no sea None y sea iterable
     if not result or not isinstance(result, list):
-        return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'total_supply', 'balance_usd'])
+        return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'balance_usd'])
 
     data = []
     for protocol in result:
@@ -56,7 +56,6 @@ def process_defi_data(result):
                                 'common_name': common_name,
                                 'module': module,
                                 'token_symbol': f"{supply_tokens[0].get('tokenSymbol', '')}/{supply_tokens[1].get('tokenSymbol', '')}",
-                                'total_supply': balance_0 + balance_1,
                                 'balance_usd': balance_usd_0 + balance_usd_1
                             })
                         except (ValueError, TypeError):
@@ -77,7 +76,7 @@ def process_defi_data(result):
 
     # Si no hay datos, devolver un DataFrame vacío con las columnas esperadas
     if not data:
-        return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'total_supply', 'balance_usd'])
+        return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'balance_usd'])
 
     # Crear el DataFrame
     df = pd.DataFrame(data)
@@ -87,7 +86,6 @@ def process_defi_data(result):
     df['common_name'] = df['common_name'].astype(str)
     df['module'] = df['module'].astype(str)
     df['token_symbol'] = df['token_symbol'].astype(str)
-    df['total_supply'] = pd.to_numeric(df['total_supply'], errors='coerce').fillna(0)
     df['balance_usd'] = pd.to_numeric(df['balance_usd'], errors='coerce').fillna(0)
 
     # Filtrar por balance USD mayor a \$5
@@ -95,7 +93,6 @@ def process_defi_data(result):
 
     # Redondear valores numéricos
     df['balance_usd'] = df['balance_usd'].round(6)
-    df['total_supply'] = df['total_supply'].round(6)
 
     return df
 
@@ -153,10 +150,6 @@ def main():
                             "token_symbol": st.column_config.TextColumn(
                                 "Token",
                                 help="Token symbol"
-                            ),
-                            "total_supply": st.column_config.TextColumn(
-                                "Total Supply",
-                                help="Total token supply"
                             ),
                             "balance_usd": st.column_config.TextColumn(
                                 "Balance USD",
