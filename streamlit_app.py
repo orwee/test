@@ -424,7 +424,6 @@ def main():
             unsafe_allow_html=True
         )
 
-        # Agregar esto al inicio de tu aplicación, después de st.set_page_config
         st.markdown(
             """
             <style>
@@ -439,6 +438,7 @@ def main():
             /* Personalizar los headers */
             h1, h2, h3, h4, h5, h6 {
                 font-family: 'IBM Plex Mono', monospace;
+                color: #A199DA;
             }
         
             /* Personalizar el color de los botones */
@@ -466,6 +466,7 @@ def main():
             /* Personalizar enlaces */
             a {
                 color: #A199DA !important;
+                text-decoration: none;
             }
         
             a:hover {
@@ -486,6 +487,7 @@ def main():
             .streamlit-expanderHeader {
                 font-family: 'IBM Plex Mono', monospace;
                 background-color: #A199DA20;
+                color: #A199DA;
             }
         
             /* Personalizar sidebar */
@@ -507,39 +509,91 @@ def main():
             .tooltip {
                 font-family: 'IBM Plex Mono', monospace;
             }
+        
+            /* Personalizar gráficos */
+            .plotly-graph-div {
+                font-family: 'IBM Plex Mono', monospace;
+            }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # Modificar la configuración de los gráficos de Plotly
-        plot_config = {
-            'layout': {
-                'font_family': 'IBM Plex Mono',
-                'plot_bgcolor': 'rgba(0,0,0,0)',
-                'paper_bgcolor': 'rgba(0,0,0,0)',
-                'colorway': ['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
-            }
-        }
+        # Configuración de gráficos Plotly
+        def customize_plotly(fig):
+            fig.update_layout(
+                font_family='IBM Plex Mono',
+                font_color='#A199DA',
+                title_font_size=18,
+                title_font_color='#A199DA',
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
+            )
+            return fig
         
-        # En tus gráficos de torta, actualiza el diseño:
-        fig1.update_layout(
-            font_family='IBM Plex Mono',
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
-            height=500
-        )
+        # Ejemplo de gráficos personalizados
+        if df['balance_usd'].sum() > 0:
+            st.subheader("Distribución de Balance USD")
         
-        fig2.update_layout(
-            font_family='IBM Plex Mono',
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
-            height=500
-        )
+            # Crear dos columnas para los gráficos
+            col1, col2 = st.columns(2)
         
-        # Para el botón de Orwee.io en la sidebar:
+            with col1:
+                # Gráfico por Token y Protocolo
+                df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
+                df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
+        
+                fig1 = px.pie(
+                    df_grouped_protocol,
+                    values='balance_usd',
+                    names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
+                    title='Distribución por Token y Protocolo',
+                    hover_data=['balance_usd'],
+                    labels={'balance_usd': 'Balance USD'}
+                )
+        
+                fig1 = customize_plotly(fig1)
+                st.plotly_chart(fig1, use_container_width=True)
+        
+            with col2:
+                # Gráfico por Módulo
+                df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
+                df_grouped_module = df_grouped_module[df_grouped_module['balance_usd'] > 0]
+        
+                fig2 = px.pie(
+                    df_grouped_module,
+                    values='balance_usd',
+                    names='module',
+                    title='Distribución por Módulo',
+                    hover_data=['balance_usd'],
+                    labels={'balance_usd': 'Balance USD'}
+                )
+        
+                fig2 = customize_plotly(fig2)
+                st.plotly_chart(fig2, use_container_width=True)
+        
+            # Mostrar estadísticas adicionales
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(
+                    "Balance Total USD",
+                    f"${format_number(df['balance_usd'].sum())}"
+                )
+            with col2:
+                st.metric(
+                    "Número de Protocolos",
+                    len(df['common_name'].unique())
+                )
+            with col3:
+                st.metric(
+                    "Número de Posiciones",
+                    len(df)
+                )
+        else:
+            st.warning("No hay datos de balance USD para mostrar en el gráfico")
+        
+        # Botón en la barra lateral
         st.sidebar.markdown(
             """
             <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
