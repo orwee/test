@@ -6,57 +6,58 @@ import numpy as np
 from openai import OpenAI
 import os
 
-# Nueva función para generar el análisis con GPT
+# New function to generate the investment analysis using GPT
 def generate_investment_analysis(current_position, alternatives):
-    # Obtener API key de Streamlit secrets
+    # Retrieve API key from Streamlit secrets
     api_key = st.secrets.get("openai_api_key")
 
     if not api_key:
-        st.error("No se encontró la API key de OpenAI. Por favor, configúrala en Streamlit Secrets.")
-        return "No se pudo generar el análisis debido a la falta de API key."
+        st.error("OpenAI API key not found. Please set it in Streamlit Secrets.")
+        return "Could not generate the analysis due to missing API key."
 
-    # Inicializar el cliente de OpenAI
+    # Initialize the OpenAI client
     client = OpenAI(api_key=api_key)
 
-    # Crear el prompt
+    # Create the prompt
     prompt = f"""
-    Analiza las siguientes alternativas de inversión DeFi:
+    Analyze the following DeFi investment alternatives:
 
-    Posición actual:
+    Current position:
     - Token: {current_position['token_symbol']}
-    - Protocolo: {current_position['common_name']}
+    - Protocol: {current_position['common_name']}
     - Balance USD: ${format_number(current_position['balance_usd'])}
 
-    Alternativas disponibles:
-    {'\n'.join([f"- {alt['project']} en {alt['chain']}: {alt['symbol']} (APY: {alt['apy']:.2f}%, TVL: ${format_number(alt['tvlUsd'])})" for alt in alternatives])}
+    Available alternatives:
+    {'\n'.join([f"- {alt['project']} on {alt['chain']}: {alt['symbol']} (APY: {alt['apy']:.2f}%, TVL: ${format_number(alt['tvlUsd'])})" for alt in alternatives])}
 
-    Por favor, proporciona un análisis conciso que incluya:
-    1. Comparación de APYs y riesgos potenciales
-    2. Ventajas y desventajas de cada alternativa
-    3. Consideraciones sobre la seguridad y el TVL
-    4. Una recomendación final basada en el balance riesgo/beneficio
+    Please provide a concise analysis that includes:
+    1. Comparison of APYs and potential risks
+    2. Advantages and disadvantages of each alternative
+    3. Security and TVL considerations
+    4. A final recommendation based on the risk/benefit balance
     """
 
     try:
-        # Hacer la llamada a la API
+        # Call the API
         response = client.chat.completions.create(
-            model="gpt-4",  # o "gpt-3.5-turbo" si prefieres
+            model="gpt-4",  # or "gpt-3.5-turbo" if you prefer
             messages=[
-                {"role": "system", "content": "Eres un experto asesor DeFi que proporciona análisis objetivos y profesionales sobre oportunidades de inversión."},
+                {"role": "system", "content": "You are a DeFi expert advisor providing objective and professional analysis of investment opportunities."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
             max_tokens=500
         )
 
-        # Extraer y devolver la respuesta
+        # Extract and return the response
         return response.choices[0].message.content
 
     except Exception as e:
-        st.error(f"Error al generar el análisis: {str(e)}")
-        return "No se pudo generar el análisis debido a un error en la API."
-        
-# Añade esta nueva función después de get_user_defi_positions
+        st.error(f"Error generating analysis: {str(e)}")
+        return "Could not generate the analysis due to an API error."
+
+
+# Add this new function after get_user_defi_positions
 def get_defi_llama_yields():
     url = "https://yields.llama.fi/pools"
     try:
@@ -70,17 +71,17 @@ def get_defi_llama_yields():
 
 def get_alternatives_for_token(token_symbol, llama_data, n=3):
     """
-    Busca las mejores alternativas en DefiLlama para un token específico.
+    Searches for the best DeFiLlama alternatives for a specific token.
     """
     if not llama_data or 'data' not in llama_data:
         return []
 
-    # Separar tokens si es un par de liquidez
+    # Split token symbols if it's a liquidity pair
     tokens = token_symbol.split('/')
 
     alternatives = []
     for pool in llama_data['data']:
-        # Comprobar si el símbolo del pool coincide con alguno de los tokens
+        # Check whether the pool symbol matches any of the tokens
         if any(token.upper() in pool['symbol'].upper() for token in tokens):
             alternatives.append({
                 'symbol': pool['symbol'],
@@ -90,10 +91,10 @@ def get_alternatives_for_token(token_symbol, llama_data, n=3):
                 'tvlUsd': pool.get('tvlUsd', 0)
             })
 
-    # Ordenar por APY descendente y tomar los top n
+    # Sort by descending APY and take top n
     alternatives.sort(key=lambda x: x['apy'], reverse=True)
     return alternatives[:n]
-    
+
 def format_number(value):
     if abs(value) >= 1e6:
         return f"{value:,.2f}".rstrip('0').rstrip('.')
@@ -117,23 +118,23 @@ def get_user_defi_positions(address, api_key):
         return {"error": f"Exception occurred: {str(e)}"}
 
 def process_defi_data(result):
-    # Validar que el resultado no sea None y sea iterable
+    # Validate that the result is not None and is iterable
     if not result or not isinstance(result, list):
         return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'balance_usd'])
 
     data = []
     for protocol in result:
-        # Validar que el protocolo tenga las claves necesarias
+        # Validate that the protocol has the necessary keys
         chain = str(protocol.get('chain', ''))
         common_name = str(protocol.get('commonName', ''))
 
-        for portfolio in protocol.get('portfolio', []):  # Asegurarse de que 'portfolio' sea una lista
+        for portfolio in protocol.get('portfolio', []):  # Ensure 'portfolio' is a list
             module = str(portfolio.get('module', ''))
 
             if 'detailed' in portfolio and 'supply' in portfolio['detailed']:
                 supply_tokens = portfolio['detailed']['supply']
 
-                if isinstance(supply_tokens, list):  # Validar que 'supply' sea una lista
+                if isinstance(supply_tokens, list):  # Validate that 'supply' is a list
                     if module == 'Liquidity Pool' and len(supply_tokens) >= 2:
                         try:
                             balance_0 = float(supply_tokens[0].get('balance', 0))
@@ -163,24 +164,24 @@ def process_defi_data(result):
                             except (ValueError, TypeError):
                                 continue
 
-    # Si no hay datos, devolver un DataFrame vacío con las columnas esperadas
+    # If there is no data, return an empty DataFrame with the expected columns
     if not data:
         return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'balance_usd'])
 
-    # Crear el DataFrame
+    # Create the DataFrame
     df = pd.DataFrame(data)
 
-    # Convertir tipos de datos explícitamente
+    # Explicitly convert data types
     df['chain'] = df['chain'].astype(str)
     df['common_name'] = df['common_name'].astype(str)
     df['module'] = df['module'].astype(str)
     df['token_symbol'] = df['token_symbol'].astype(str)
     df['balance_usd'] = pd.to_numeric(df['balance_usd'], errors='coerce').fillna(0)
 
-    # Filtrar por balance USD mayor a \$5
+    # Filter for balance USD > \$5
     df = df[df['balance_usd'] > 5]
 
-    # Redondear valores numéricos
+    # Round numeric values
     df['balance_usd'] = df['balance_usd'].round(6)
 
     return df
@@ -199,33 +200,30 @@ def main():
     with col2:
         st.title("Rocky by Orwee")
 
-    st.sidebar.header("Configuración")
-    wallet_address = st.sidebar.text_input("Dirección de Wallet")
+    st.sidebar.header("Settings")
+    wallet_address = st.sidebar.text_input("Wallet Address")
     api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
-    
 
     if wallet_address and api_key:
-        #st.write(f"Wallet conectada: {wallet_address}")
-
-        # Obtener datos
+        # Retrieve data
         result = get_user_defi_positions(wallet_address, api_key)
 
         if 'error' not in result:
             try:
-                # Procesar datos y crear DataFrame
+                # Process data and create a DataFrame
                 df = process_defi_data(result)
 
                 if not df.empty:
-                    # Mostrar tabla
-                    st.subheader("Posiciones DeFi")
+                    # Display table
+                    st.subheader("DeFi Positions")
 
-                    # Crear una copia del DataFrame para el display
+                    # Create a copy of the DataFrame for display
                     df_display = df.copy()
 
-                    # Formatear las columnas numéricas
+                    # Format numeric columns
                     df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
 
-                    # Configuración de la tabla con formato mejorado
+                    # Enhanced table configuration
                     st.dataframe(
                         df_display,
                         column_config={
@@ -254,7 +252,7 @@ def main():
                         use_container_width=True
                     )
 
-                    # Configuración de gráficos Plotly
+                    # Plotly chart customization
                     def customize_plotly(fig):
                         fig.update_layout(
                             font_family='IBM Plex Mono',
@@ -266,98 +264,99 @@ def main():
                             colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
                         )
                         return fig
-                    # Ejemplo de gráficos personalizados
+
+                    # Example of customized charts
                     if df['balance_usd'].sum() > 0:
-                        st.subheader("Distribución de Balance USD")
-                  
-                        # Crear dos columnas para los gráficos
+                        st.subheader("Balance USD Distribution")
+
+                        # Create two columns for charts
                         col1, col2 = st.columns(2)
-                  
+
                         with col1:
-                            # Gráfico por Token y Protocolo
+                            # Chart by Token and Protocol
                             df_grouped_protocol = df.groupby(['token_symbol', 'common_name'])['balance_usd'].sum().reset_index()
                             df_grouped_protocol = df_grouped_protocol[df_grouped_protocol['balance_usd'] > 0]
-                  
+
                             fig1 = px.pie(
                                 df_grouped_protocol,
                                 values='balance_usd',
                                 names=df_grouped_protocol.apply(lambda x: f"{x['token_symbol']} ({x['common_name']})", axis=1),
-                                title='Distribución por Token y Protocolo',
+                                title='Distribution by Token and Protocol',
                                 hover_data=['balance_usd'],
                                 labels={'balance_usd': 'Balance USD'}
                             )
-                  
+
                             fig1 = customize_plotly(fig1)
                             st.plotly_chart(fig1, use_container_width=True)
-                  
+
                         with col2:
-                            # Gráfico por Módulo
+                            # Chart by Module
                             df_grouped_module = df.groupby('module')['balance_usd'].sum().reset_index()
                             df_grouped_module = df_grouped_module[df_grouped_module['balance_usd'] > 0]
-                  
+
                             fig2 = px.pie(
                                 df_grouped_module,
                                 values='balance_usd',
                                 names='module',
-                                title='Distribución por Módulo',
+                                title='Distribution by Module',
                                 hover_data=['balance_usd'],
                                 labels={'balance_usd': 'Balance USD'}
                             )
-                  
+
                             fig2 = customize_plotly(fig2)
                             st.plotly_chart(fig2, use_container_width=True)
-                  
-                        # Mostrar estadísticas adicionales
+
+                        # Display additional stats
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.metric(
-                                "Balance Total USD",
+                                "Total Balance USD",
                                 f"${format_number(df['balance_usd'].sum())}"
                             )
                         with col2:
                             st.metric(
-                                "Número de Protocolos",
+                                "Number of Protocols",
                                 len(df['common_name'].unique())
                             )
                         with col3:
                             st.metric(
-                                "Número de Posiciones",
+                                "Number of Positions",
                                 len(df)
-                )
+                            )
                     else:
-                        st.warning("No hay datos de balance USD para mostrar en el gráfico")
+                        st.warning("No USD balance data available for chart display")
                 else:
-                    st.warning("No se encontraron datos para mostrar")
+                    st.warning("No data found to display")
             except Exception as e:
-                st.error(f"Error al procesar los datos: {str(e)}")
+                st.error(f"Error processing data: {str(e)}")
         else:
-            st.error(f"Error al obtener datos: {result['error']}")
+            st.error(f"Error retrieving data: {result['error']}")
 
         llama_result = get_defi_llama_yields()
 
         if 'error' not in llama_result:
-            st.subheader("🔄 Alternativas de inversión en DeFi")
+            st.subheader("🔄 DeFi Investment Alternatives")
 
-            # Para cada posición en el portafolio
+            # For each position in the portfolio
             for idx, row in df.iterrows():
-                with st.expander(f"Alternativas para {row['token_symbol']} (actual en {row['common_name']})"):
+                with st.expander(f"Alternatives for {row['token_symbol']} (currently in {row['common_name']})"):
                     alternatives = get_alternatives_for_token(row['token_symbol'], llama_result)
 
                     if alternatives:
-                        # Crear un DataFrame con las alternativas
+                        # Create a DataFrame with the alternatives
                         df_alternatives = pd.DataFrame(alternatives)
 
-                        # Formatear las columnas
+                        # Format columns
                         df_display = df_alternatives.copy()
                         df_display['apy'] = df_display['apy'].apply(lambda x: f"{x:.2f}%")
                         df_display['tvlUsd'] = df_display['tvlUsd'].apply(lambda x: f"${format_number(x)}")
 
-                        # Mostrar la tabla de alternativas
+                        # Display the alternatives table
                         st.dataframe(
                             df_display,
                             column_config={
                                 "symbol": "Token",
-                                "project": "Protocolo",
+                                "project": "Protocol",
                                 "chain": "Blockchain",
                                 "apy": "APY",
                                 "tvlUsd": "TVL"
@@ -366,37 +365,38 @@ def main():
                             use_container_width=True
                         )
 
-                        # Mostrar métricas comparativas
+                        # Show comparative metrics
                         if len(alternatives) > 0:
-                            mejor_apy = alternatives[0]['apy']
-                            diferencia_apy = mejor_apy - 0  # Aquí podrías comparar con el APY actual si lo tienes
+                            best_apy = alternatives[0]['apy']
+                            apy_difference = best_apy - 0  # Here you could compare to the current APY if available
 
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.metric(
-                                    "Mejor APY disponible",
-                                    f"{mejor_apy:.2f}%",
-                                    f"+{diferencia_apy:.2f}%" if diferencia_apy > 0 else f"{diferencia_apy:.2f}%"
+                                    "Best Available APY",
+                                    f"{best_apy:.2f}%",
+                                    f"+{apy_difference:.2f}%" if apy_difference > 0 else f"{apy_difference:.2f}%"
                                 )
                             with col2:
                                 st.metric(
-                                    "Potencial ganancia adicional anual",
-                                    f"${format_number(row['balance_usd'] * diferencia_apy / 100)}"
+                                    "Potential Additional Annual Gain",
+                                    f"${format_number(row['balance_usd'] * apy_difference / 100)}"
                                 )
-                        # Añadir el análisis de GPT
+
+                        # Add GPT analysis (currently commented out):
                         '''
-                        st.subheader("💡 Análisis de Alternativas")
-                        with st.spinner('Generando análisis...'):
+                        st.subheader("💡 Analysis of Alternatives")
+                        with st.spinner('Generating analysis...'):
                             analysis = generate_investment_analysis(row, alternatives)
                             st.markdown(analysis)
                         '''
                     else:
-                        st.info("No se encontraron alternativas para este token")
+                        st.info("No alternatives found for this token")
         else:
-            st.error("No se pudieron obtener datos de DefiLlama")
+            st.error("Could not retrieve DefiLlama data")
 
-        
-        # Usar HTML para centrar la imagen
+
+        # Use HTML to center the image
         st.markdown(
             """
             <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
@@ -408,7 +408,7 @@ def main():
             """,
             unsafe_allow_html=True
         )
-        
+
         st.markdown(
             """
             <div style='text-align: center'>
@@ -421,21 +421,21 @@ def main():
         st.markdown(
             """
             <style>
-            /* Importar IBM Plex Mono desde Google Fonts */
+            /* Import IBM Plex Mono from Google Fonts */
             @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-        
-            /* Estilo general */
+
+            /* General style */
             * {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar los headers */
+
+            /* Customize headers */
             h1, h2, h3, h4, h5, h6 {
                 font-family: 'IBM Plex Mono', monospace;
                 color: #A199DA;
             }
-        
-            /* Personalizar el color de los botones */
+
+            /* Customize button colors */
             .stButton>button {
                 background-color: #A199DA;
                 color: white;
@@ -444,67 +444,67 @@ def main():
                 padding: 0.5rem 1rem;
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
+
             .stButton>button:hover {
                 background-color: #8A82C9;
             }
-        
-            /* Personalizar métricas */
+
+            /* Customize metrics */
             .css-1wivap2 {
                 background-color: #A199DA20;
                 border: 1px solid #A199DA;
                 border-radius: 4px;
                 padding: 1rem;
             }
-        
-            /* Personalizar enlaces */
+
+            /* Customize links */
             a {
                 color: #A199DA !important;
                 text-decoration: none;
             }
-        
+
             a:hover {
                 color: #8A82C9 !important;
             }
-        
-            /* Personalizar widgets de entrada */
+
+            /* Customize input widgets */
             .stTextInput>div>div>input {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar selectbox */
+
+            /* Customize selectbox */
             .stSelectbox>div>div>select {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar expander */
+
+            /* Customize expander */
             .streamlit-expanderHeader {
                 font-family: 'IBM Plex Mono', monospace;
                 background-color: #A199DA20;
                 color: #A199DA;
             }
-        
-            /* Personalizar sidebar */
+
+            /* Customize sidebar */
             .css-1d391kg {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar dataframe */
+
+            /* Customize dataframe */
             .dataframe {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar texto de métricas */
+
+            /* Customize metric text */
             .css-1wivap2 label {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar tooltips */
+
+            /* Customize tooltips */
             .tooltip {
                 font-family: 'IBM Plex Mono', monospace;
             }
-        
-            /* Personalizar gráficos */
+
+            /* Customize charts */
             .plotly-graph-div {
                 font-family: 'IBM Plex Mono', monospace;
             }
@@ -512,8 +512,8 @@ def main():
             """,
             unsafe_allow_html=True
         )
-        
-        # Configuración de gráficos Plotly
+
+        # Plotly configuration
         def customize_plotly(fig):
             fig.update_layout(
                 font_family='IBM Plex Mono',
@@ -525,8 +525,8 @@ def main():
                 colorway=['#A199DA', '#8A82C9', '#6C63B6', '#524AA3', '#3D3590'],
             )
             return fig
-        
-        # Botón en la barra lateral
+
+        # Button on the sidebar
         st.sidebar.markdown(
             """
             <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
@@ -541,12 +541,12 @@ def main():
                     width: 100%;
                     margin: 10px 0;
                     ">
-                    Visitar Orwee.io 🌐
+                    Visit Orwee.io 🌐
                 </button>
             </a>
             """,
             unsafe_allow_html=True
         )
-    
+
 if __name__ == "__main__":
     main()
