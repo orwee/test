@@ -203,16 +203,6 @@ def main():
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
     api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
     
-    # Agregar un botón que redirija a orwee.io
-    if st.sidebar.button("Visitar Orwee.io 🌐"):
-        st.sidebar.markdown(
-            """
-            <script>
-                window.open("https://orwee.io", "_blank");
-            </script>
-            """,
-            unsafe_allow_html=True
-        )
 
     if wallet_address and api_key:
         #st.write(f"Wallet conectada: {wallet_address}")
