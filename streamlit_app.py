@@ -374,9 +374,9 @@ def main():
             st.error("No se pudieron obtener datos de DefiLlama")
 
     # Update the footer section at the end of main():
-    st.markdown("---")
-    
-    st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=300)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=300)
     
     st.markdown(
         """
