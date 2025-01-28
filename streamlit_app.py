@@ -27,51 +27,59 @@ def get_user_defi_positions(address, api_key):
         return {"error": f"Exception occurred: {str(e)}"}
 
 def process_defi_data(result):
+    # Validar que el resultado no sea None y sea iterable
+    if not result or not isinstance(result, list):
+        return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'total_supply', 'balance_usd'])
+
     data = []
     for protocol in result:
+        # Validar que el protocolo tenga las claves necesarias
         chain = str(protocol.get('chain', ''))
         common_name = str(protocol.get('commonName', ''))
 
-        for portfolio in protocol.get('portfolio', []):
+        for portfolio in protocol.get('portfolio', []):  # Asegurarse de que 'portfolio' sea una lista
             module = str(portfolio.get('module', ''))
 
             if 'detailed' in portfolio and 'supply' in portfolio['detailed']:
                 supply_tokens = portfolio['detailed']['supply']
 
-                if module == 'Liquidity Pool' and len(supply_tokens) >= 2:
-                    try:
-                        balance_0 = float(supply_tokens[0].get('balance', 0))
-                        balance_1 = float(supply_tokens[1].get('balance', 0))
-                        balance_usd_0 = float(supply_tokens[0].get('balanceUSD', 0))
-                        balance_usd_1 = float(supply_tokens[1].get('balanceUSD', 0))
-
-                        data.append({
-                            'chain': chain,
-                            'common_name': common_name,
-                            'module': module,
-                            'token_symbol': f"{supply_tokens[0].get('tokenSymbol', '')}/{supply_tokens[1].get('tokenSymbol', '')}",
-                            'total_supply': balance_0 + balance_1,
-                            'balance_usd': balance_usd_0 + balance_usd_1
-                        })
-                    except (ValueError, TypeError):
-                        continue
-                else:
-                    for token in supply_tokens:
+                if isinstance(supply_tokens, list):  # Validar que 'supply' sea una lista
+                    if module == 'Liquidity Pool' and len(supply_tokens) >= 2:
                         try:
+                            balance_0 = float(supply_tokens[0].get('balance', 0))
+                            balance_1 = float(supply_tokens[1].get('balance', 0))
+                            balance_usd_0 = float(supply_tokens[0].get('balanceUSD', 0))
+                            balance_usd_1 = float(supply_tokens[1].get('balanceUSD', 0))
+
                             data.append({
                                 'chain': chain,
                                 'common_name': common_name,
                                 'module': module,
-                                'token_symbol': str(token.get('tokenSymbol', '')),
-                                'total_supply': float(token.get('balance', 0)),
-                                'balance_usd': float(token.get('balanceUSD', 0))
+                                'token_symbol': f"{supply_tokens[0].get('tokenSymbol', '')}/{supply_tokens[1].get('tokenSymbol', '')}",
+                                'total_supply': balance_0 + balance_1,
+                                'balance_usd': balance_usd_0 + balance_usd_1
                             })
                         except (ValueError, TypeError):
                             continue
+                    else:
+                        for token in supply_tokens:
+                            try:
+                                data.append({
+                                    'chain': chain,
+                                    'common_name': common_name,
+                                    'module': module,
+                                    'token_symbol': str(token.get('tokenSymbol', '')),
+                                    'total_supply': float(token.get('balance', 0)),
+                                    'balance_usd': float(token.get('balanceUSD', 0))
+                                })
+                            except (ValueError, TypeError):
+                                continue
 
+    # Si no hay datos, devolver un DataFrame vacío con las columnas esperadas
     if not data:
         return pd.DataFrame(columns=['chain', 'common_name', 'module', 'token_symbol', 'total_supply', 'balance_usd'])
 
+    # Crear el DataFrame
     df = pd.DataFrame(data)
 
     # Convertir tipos de datos explícitamente
@@ -81,6 +89,10 @@ def process_defi_data(result):
     df['token_symbol'] = df['token_symbol'].astype(str)
     df['total_supply'] = pd.to_numeric(df['total_supply'], errors='coerce').fillna(0)
     df['balance_usd'] = pd.to_numeric(df['balance_usd'], errors='coerce').fillna(0)
+
+    # Redondear valores numéricos
+    df['balance_usd'] = df['balance_usd'].round(6)
+    df['total_supply'] = df['total_supply'].round(6)
 
     return df
 
