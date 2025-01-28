@@ -3,7 +3,46 @@ import requests
 import pandas as pd
 import plotly.express as px
 import numpy as np
+from openai import OpenAI
+import os
 
+# Nueva función para generar el análisis con GPT
+def generate_investment_analysis(current_position, alternatives):
+    client = OpenAI(api_key='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')  # Mejor usar st.secrets o variables de entorno
+
+    # Crear el prompt
+    prompt = f"""
+    Analiza las siguientes alternativas de inversión DeFi:
+
+    Posición actual:
+    - Token: {current_position['token_symbol']}
+    - Protocolo: {current_position['common_name']}
+    - Balance USD: ${format_number(current_position['balance_usd'])}
+
+    Alternativas disponibles:
+    {'\n'.join([f"- {alt['project']} en {alt['chain']}: {alt['symbol']} (APY: {alt['apy']:.2f}%, TVL: ${format_number(alt['tvlUsd'])})" for alt in alternatives])}
+
+    Por favor, proporciona un análisis conciso que incluya:
+    1. Comparación de APYs y riesgos potenciales
+    2. Ventajas y desventajas de cada alternativa
+    3. Consideraciones sobre la seguridad y el TVL
+    4. Una recomendación final basada en el balance riesgo/beneficio
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",  # o "gpt-3.5-turbo" si prefieres
+            messages=[
+                {"role": "system", "content": "Eres un experto asesor DeFi que proporciona análisis objetivos y profesionales sobre oportunidades de inversión."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error al generar el análisis: {str(e)}"
+        
 # Añade esta nueva función después de get_user_defi_positions
 def get_defi_llama_yields():
     url = "https://yields.llama.fi/pools"
@@ -304,6 +343,11 @@ def main():
                                     "Potencial ganancia adicional anual",
                                     f"${format_number(row['balance_usd'] * diferencia_apy / 100)}"
                                 )
+                        # Añadir el análisis de GPT
+                        st.subheader("💡 Análisis de Alternativas")
+                        with st.spinner('Generando análisis...'):
+                            analysis = generate_investment_analysis(row, alternatives)
+                            st.markdown(analysis)
                     else:
                         st.info("No se encontraron alternativas para este token")
         else:
