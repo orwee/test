@@ -362,10 +362,12 @@ def main():
                                     f"${format_number(row['balance_usd'] * diferencia_apy / 100)}"
                                 )
                         # Añadir el análisis de GPT
+                        '''
                         st.subheader("💡 Análisis de Alternativas")
                         with st.spinner('Generando análisis...'):
                             analysis = generate_investment_analysis(row, alternatives)
                             st.markdown(analysis)
+                        '''
                     else:
                         st.info("No se encontraron alternativas para este token")
         else:
@@ -373,10 +375,8 @@ def main():
 
     # Update the footer section at the end of main():
     st.markdown("---")
-    # Centrar la imagen usando columnas
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=150)
+    
+    st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=300)
     
     st.markdown(
         """
