@@ -212,7 +212,7 @@ def main():
     wallet_address = st.sidebar.text_input("Wallet Address")
 
     # Example API key (replace or also request from user)
-    api_key = "uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK"
+    api_key = "vEDmTpgKh4iRfSFVkS9vFTswy79pPr5h"
 
     # Button to run the main analysis
     analyze_button = st.sidebar.button("Analyze with AI")
