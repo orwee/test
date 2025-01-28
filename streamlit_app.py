@@ -1,4 +1,3 @@
-
 import streamlit as st
 import requests
 import pandas as pd
@@ -256,7 +255,6 @@ def main():
                     )
 
                     # Reemplaza la sección del gráfico original con esto:
-                    # Ejemplo de gráficos personalizados
                     if df['balance_usd'].sum() > 0:
                         st.subheader("Distribución de Balance USD")
                     
@@ -277,7 +275,16 @@ def main():
                                 labels={'balance_usd': 'Balance USD'}
                             )
                     
-                            fig1 = customize_plotly(fig1)
+                            # Personalizar el diseño del gráfico
+                            fig1.update_traces(
+                                textposition='inside',
+                                textinfo='percent+label'
+                            )
+                            fig1.update_layout(
+                                showlegend=True,
+                                height=500
+                            )
+                    
                             st.plotly_chart(fig1, use_container_width=True)
                     
                         with col2:
@@ -294,7 +301,16 @@ def main():
                                 labels={'balance_usd': 'Balance USD'}
                             )
                     
-                            fig2 = customize_plotly(fig2)
+                            # Personalizar el diseño del gráfico
+                            fig2.update_traces(
+                                textposition='inside',
+                                textinfo='percent+label'
+                            )
+                            fig2.update_layout(
+                                showlegend=True,
+                                height=500
+                            )
+                    
                             st.plotly_chart(fig2, use_container_width=True)
                     
                         # Mostrar estadísticas adicionales
