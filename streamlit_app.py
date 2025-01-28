@@ -95,7 +95,7 @@ def main():
 
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
-    api_key = 'uXbmFEMc02mUl4PclRXy5fEZcHyqTLUK'
+    api_key = st.sidebar.text_input("API Key", type="password")
 
     if wallet_address and api_key:
         st.write(f"Wallet conectada: {wallet_address}")
@@ -112,9 +112,16 @@ def main():
                     # Mostrar tabla
                     st.subheader("Posiciones DeFi")
 
+                    # Crear una copia del DataFrame para el display
+                    df_display = df.copy()
+
+                    # Formatear las columnas numéricas
+                    df_display['total_supply'] = df_display['total_supply'].apply(format_number)
+                    df_display['balance_usd'] = df_display['balance_usd'].apply(lambda x: f"${format_number(x)}")
+
                     # Configuración de la tabla con formato mejorado
                     st.dataframe(
-                        df,
+                        df_display,
                         column_config={
                             "chain": st.column_config.TextColumn(
                                 "Chain",
@@ -132,15 +139,13 @@ def main():
                                 "Token",
                                 help="Token symbol"
                             ),
-                            "total_supply": st.column_config.NumberColumn(
+                            "total_supply": st.column_config.TextColumn(
                                 "Total Supply",
-                                help="Total token supply",
-                                format="%.6f"
+                                help="Total token supply"
                             ),
-                            "balance_usd": st.column_config.NumberColumn(
+                            "balance_usd": st.column_config.TextColumn(
                                 "Balance USD",
-                                help="Value in USD",
-                                format="$%.6f"
+                                help="Value in USD"
                             )
                         },
                         hide_index=True,
@@ -184,7 +189,7 @@ def main():
                         with col1:
                             st.metric(
                                 "Balance Total USD",
-                                f"${df['balance_usd'].sum():,.2f}"
+                                f"${format_number(df['balance_usd'].sum())}"
                             )
                         with col2:
                             st.metric(
@@ -216,6 +221,5 @@ def main():
         """,
         unsafe_allow_html=True
     )
-
 if __name__ == "__main__":
     main()
