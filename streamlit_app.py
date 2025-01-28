@@ -3,14 +3,20 @@ import requests
 import pandas as pd
 import plotly.express as px
 import numpy as np
-import openai
+import openai import OpenAI
 import os
 
 # Nueva función para generar el análisis con GPT
 def generate_investment_analysis(current_position, alternatives):
+    # Obtener API key de Streamlit secrets
     api_key = st.secrets.get("openai_api_key")
-    openai.api_key = api_key
-    client = openai(api_key=api_key)
+
+    if not api_key:
+        st.error("No se encontró la API key de OpenAI. Por favor, configúrala en Streamlit Secrets.")
+        return "No se pudo generar el análisis debido a la falta de API key."
+
+    # Inicializar el cliente de OpenAI
+    client = OpenAI(api_key=api_key)
 
     # Crear el prompt
     prompt = f"""
@@ -32,6 +38,7 @@ def generate_investment_analysis(current_position, alternatives):
     """
 
     try:
+        # Hacer la llamada a la API
         response = client.chat.completions.create(
             model="gpt-4",  # o "gpt-3.5-turbo" si prefieres
             messages=[
@@ -41,9 +48,13 @@ def generate_investment_analysis(current_position, alternatives):
             temperature=0.7,
             max_tokens=500
         )
+
+        # Extraer y devolver la respuesta
         return response.choices[0].message.content
+
     except Exception as e:
-        return f"Error al generar el análisis: {str(e)}"
+        st.error(f"Error al generar el análisis: {str(e)}")
+        return "No se pudo generar el análisis debido a un error en la API."
         
 # Añade esta nueva función después de get_user_defi_positions
 def get_defi_llama_yields():
