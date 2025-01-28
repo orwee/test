@@ -1,204 +1,124 @@
+# main.py
 import streamlit as st
-import requests
 import pandas as pd
-import plotly.express as px
+import requests
+from typing import Dict, List
+import json
+from datetime import datetime
 
-# Configuración inicial de la página
-st.set_page_config(
-    page_title="Solana DeFi Advisor",
-    page_icon="🌟",
-    layout="wide"
-)
+class DeepSeekAPI:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://api.deepseek.ai/v1"
 
-# Clases y funciones auxiliares
-class PortfolioAnalyzer:
-    def __init__(self):
-        self.step_finance_api = "https://api.step.finance/v1/portfolio/"
-        self.defillama_api = "https://yields.llama.fi/pools"
-
-    def get_portfolio(self, wallet_address: str):
-        """Obtiene el portfolio desde Step Finance"""
+    async def get_recommendations(self, portfolio_data: Dict) -> Dict:
+        """
+        Obtiene recomendaciones de DeepSeek basadas en el portfolio
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
         try:
-            response = requests.get(f"{self.step_finance_api}{wallet_address}")
+            response = requests.post(
+                f"{self.base_url}/recommendations",
+                headers=headers,
+                json=portfolio_data
+            )
             return response.json()
         except Exception as e:
-            st.error(f"Error al obtener el portfolio: {str(e)}")
+            st.error(f"Error al obtener recomendaciones: {str(e)}")
             return {}
 
-    def get_defi_opportunities(self):
-        """Obtiene oportunidades DeFi desde DeFiLlama"""
+class DeFiLlamaAPI:
+    def __init__(self):
+        self.base_url = "https://api.defillama.com/v2"
+
+    def get_opportunities(self) -> List[Dict]:
+        """
+        Obtiene oportunidades de DeFi desde DeFiLlama
+        """
         try:
-            response = requests.get(self.defillama_api)
-            data = response.json()
-            # Filtrar solo pools de Solana
-            solana_pools = [
-                pool for pool in data['data']
-                if pool['chain'] == 'Solana'
-            ]
-            return solana_pools
+            response = requests.get(f"{self.base_url}/protocols")
+            return response.json()
         except Exception as e:
-            st.error(f"Error al obtener oportunidades DeFi: {str(e)}")
+            st.error(f"Error al obtener datos de DeFiLlama: {str(e)}")
             return []
 
-def calculate_additional_gains(portfolio, opportunities, time_in_months=12):
-    """Calcula las ganancias adicionales si se invierte en las oportunidades recomendadas"""
-    results = []
-    for token in portfolio.get('tokens', []):
-        symbol = token['symbol']
-        amount = token['amount']
-        apy_current = 0  # APY actual (asumimos 0 si no hay posición activa)
+class PortfolioAnalyzer:
+    def __init__(self):
+        self.defillama = DeFiLlamaAPI()
+        
+    def analyze_portfolio(self, wallet_data: Dict) -> Dict:
+        """
+        Analiza el portfolio y calcula métricas
+        """
+        try:
+            # Obtener datos actuales
+            current_positions = pd.DataFrame(wallet_data['positions'])
+            
+            # Calcular métricas
+            total_value = current_positions['amount'].sum()
+            weighted_apr = (current_positions['amount'] * 
+                          current_positions['apr']).sum() / total_value
+            
+            return {
+                'total_value': total_value,
+                'weighted_apr': weighted_apr,
+                'positions': current_positions.to_dict('records')
+            }
+        except Exception as e:
+            st.error(f"Error en el análisis del portfolio: {str(e)}")
+            return {}
 
-        # Buscar la mejor oportunidad para este token
-        best_opportunity = max(
-            (op for op in opportunities if symbol in op['tokens']),
-            key=lambda x: x['apy'],
-            default=None
-        )
-
-        if best_opportunity:
-            apy_recommended = best_opportunity['apy']
-            protocol = best_opportunity['protocol']
-
-            # Calcular ganancias adicionales
-            current_gain = amount * ((1 + apy_current / 100) ** (time_in_months / 12) - 1)
-            recommended_gain = amount * ((1 + apy_recommended / 100) ** (time_in_months / 12) - 1)
-            additional_gain = recommended_gain - current_gain
-
-            results.append({
-                "Token": symbol,
-                "Cantidad": amount,
-                "APY Actual (%)": apy_current,
-                "APY Recomendado (%)": apy_recommended,
-                "Ganancia Actual ($)": current_gain,
-                "Ganancia Recomendada ($)": recommended_gain,
-                "Ganancia Adicional ($)": additional_gain,
-                "Protocolo Recomendado": protocol
-            })
-
-    return pd.DataFrame(results)
-
-# Funciones para la interfaz
-def render_portfolio_section(portfolio):
-    """Renderiza la sección del portfolio"""
-    st.subheader("📊 Tu Portfolio")
-
-    if portfolio and 'tokens' in portfolio:
-        # Crear DataFrame para mostrar los tokens
-        df = pd.DataFrame(portfolio['tokens'])
-
-        # Mostrar gráfico de composición del portfolio
-        fig = px.pie(df, values='value', names='symbol', title='Composición del Portfolio')
-        st.plotly_chart(fig)
-
-        # Mostrar tabla de tokens
-        st.dataframe(df)
-    else:
-        st.warning("No se encontraron tokens en el portfolio")
-
-def render_opportunities_section(opportunities):
-    """Renderiza la sección de oportunidades"""
-    st.subheader("💎 Oportunidades de Inversión")
-
-    if opportunities:
-        # Crear DataFrame para mostrar las oportunidades
-        df = pd.DataFrame(opportunities)
-
-        # Filtros interactivos
-        col1, col2 = st.columns(2)
-        with col1:
-            min_apy = st.slider("APY Mínimo (%)", 0, 100, 0)
-        with col2:
-            selected_protocols = st.multiselect(
-                "Protocolos",
-                options=df['protocol'].unique(),
-                default=df['protocol'].unique()
-            )
-
-        # Aplicar filtros
-        filtered_df = df[
-            (df['apy'] >= min_apy) &
-            (df['protocol'].isin(selected_protocols))
-        ]
-
-        # Mostrar gráfico de APY por protocolo
-        fig = px.bar(
-            filtered_df,
-            x='protocol',
-            y='apy',
-            title='APY por Protocolo'
-        )
-        st.plotly_chart(fig)
-
-        # Mostrar tabla de oportunidades
-        st.dataframe(filtered_df)
-    else:
-        st.warning("No se encontraron oportunidades de inversión")
-
-def render_additional_gains_section(portfolio, opportunities):
-    """Renderiza la sección de ganancias adicionales"""
-    st.subheader("📈 Ganancias Adicionales Potenciales")
-
-    # Calcular ganancias adicionales
-    df = calculate_additional_gains(portfolio, opportunities)
-
-    if not df.empty:
-        # Mostrar tabla de ganancias adicionales
-        st.dataframe(df)
-
-        # Mostrar gráfico de ganancias adicionales
-        fig = px.bar(
-            df,
-            x="Token",
-            y="Ganancia Adicional ($)",
-            color="Protocolo Recomendado",
-            title="Ganancias Adicionales por Token"
-        )
-        st.plotly_chart(fig)
-    else:
-        st.warning("No se encontraron ganancias adicionales para mostrar")
+class MetricsCalculator:
+    @staticmethod
+    def calculate_potential_gains(
+        current_apr: float,
+        recommended_apr: float,
+        amount: float,
+        time_period: int = 365
+    ) -> float:
+        """
+        Calcula ganancias potenciales basadas en APR
+        """
+        current_gains = amount * (current_apr / 100) * (time_period / 365)
+        potential_gains = amount * (recommended_apr / 100) * (time_period / 365)
+        return potential_gains - current_gains
 
 def main():
-    # Título y descripción
+    st.set_page_config(
+        page_title="Solana DeFi Advisor",
+        page_icon="🌟",
+        layout="wide"
+    )
+
     st.title("🌟 Solana DeFi Advisor")
-    st.markdown("""
-    Este asistente te ayuda a analizar tu portfolio en Solana y encontrar las mejores oportunidades DeFi.
-    """)
 
-    # Inicializar clases
-    analyzer = PortfolioAnalyzer()
+    # Sidebar
+    st.sidebar.header("Configuración")
+    wallet_address = st.sidebar.text_input("Dirección de Wallet")
 
-    # Sidebar para entrada de datos
-    with st.sidebar:
-        st.header("📝 Entrada de datos")
-        wallet_address = st.text_input(
-            "Dirección de Wallet Solana",
-            placeholder="Ingresa tu dirección de wallet..."
-        )
+    if wallet_address:
+        # Inicializar componentes
+        analyzer = PortfolioAnalyzer()
+        calculator = MetricsCalculator()
 
-        analyze_button = st.button("Analizar")
+        # Layout principal
+        col1, col2 = st.columns(2)
 
-    # Contenido principal
-    if analyze_button and wallet_address:
-        with st.spinner("Analizando tu portfolio..."):
-            # Obtener datos
-            portfolio = analyzer.get_portfolio(wallet_address)
-            opportunities = analyzer.get_defi_opportunities()
+        with col1:
+            st.subheader("📊 Tu Portfolio")
+            # Aquí iría la lógica para mostrar el portfolio
 
-            # Mostrar secciones
-            col1, col2 = st.columns(2)
-            with col1:
-                render_portfolio_section(portfolio)
-            with col2:
-                render_opportunities_section(opportunities)
+        with col2:
+            st.subheader("💎 Oportunidades")
+            # Aquí iría la lógica para mostrar oportunidades
 
-            # Mostrar sección de ganancias adicionales
-            render_additional_gains_section(portfolio, opportunities)
-
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    💡 **Nota**: Este es un asistente de inversión. Siempre DYOR (Do Your Own Research).
-    """)
+        # Sección de ganancias adicionales
+        st.subheader("📈 Ganancias Adicionales")
+        # Aquí iría la lógica para mostrar ganancias adicionales
 
 if __name__ == "__main__":
     main()
