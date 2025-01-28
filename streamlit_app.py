@@ -1,156 +1,204 @@
 import streamlit as st
+import requests
 import pandas as pd
+import plotly.express as px
 
-# --------------------------------------------------
-# 1. Cargamos un DataFrame de prueba
-# --------------------------------------------------
-def load_sample_data():
-    sample_data = {
-      "pair": ["ETH/USDT", "BTC/USDT", "ETH/DAI", "AVAX/USDT", "SOL/USDC"],
-      "volume": [1500000, 3000000, 500000, 2000000, 1000000],
-      "tvl": [500000, 800000, 200000, 600000, 300000],
-      "apr": [0.12, 0.15, 0.10, 0.20, 0.18]
-    }
-    return pd.DataFrame(sample_data)
+# Configuración inicial de la página
+st.set_page_config(
+    page_title="Solana DeFi Advisor",
+    page_icon="🌟",
+    layout="wide"
+)
 
-# --------------------------------------------------
-# 2. Detectar si el usuario pide un cálculo estadístico
-# --------------------------------------------------
-def detect_aggregation(user_query: str):
-    """
-    Retorna la operación de agregación que usará .agg() de pandas:
-    - 'mean' si encuentra palabras como 'media', 'promedio'
-    - 'max' si encuentra palabras como 'máximo', 'max'
-    - 'min' si encuentra 'mínimo', 'min'
-    - 'sum' si encuentra 'suma', 'sum'
-    - 'count' si encuentra 'conteo', 'count'
-    De lo contrario, retorna None.
-    """
-    lower_q = user_query.lower()
-    if any(word in lower_q for word in ["media", "promedio", "mean"]):
-        return "mean"
-    elif any(word in lower_q for word in ["máximo", "maximo", "max"]):
-        return "max"
-    elif any(word in lower_q for word in ["mínimo", "minimo", "min"]):
-        return "min"
-    elif any(word in lower_q for word in ["suma", "sum"]):
-        return "sum"
-    elif any(word in lower_q for word in ["conteo", "count"]):
-        return "count"
-    return None
+# Clases y funciones auxiliares
+class PortfolioAnalyzer:
+    def __init__(self):
+        self.step_finance_api = "https://api.step.finance/v1/portfolio/"
+        self.defillama_api = "https://yields.llama.fi/pools"
 
-# --------------------------------------------------
-# 3. Detectar tipo de gráfico (bar, line, area)
-# --------------------------------------------------
-def detect_chart_type(user_query: str) -> str:
-    lower_q = user_query.lower()
-    if "barras" in lower_q or "bar" in lower_q:
-        return "bar"
-    elif "línea" in lower_q or "line" in lower_q:
-        return "line"
-    elif "área" in lower_q or "area" in lower_q:
-        return "area"
-    else:
-        # Pie/pastel no está soportado nativamente por Streamlit
-        if "pastel" in lower_q or "pie" in lower_q:
-            return "unsupported_pie"
-        return "bar"  # Valor por defecto
+    def get_portfolio(self, wallet_address: str):
+        """Obtiene el portfolio desde Step Finance"""
+        try:
+            response = requests.get(f"{self.step_finance_api}{wallet_address}")
+            return response.json()
+        except Exception as e:
+            st.error(f"Error al obtener el portfolio: {str(e)}")
+            return {}
 
-# --------------------------------------------------
-# 4. Detectar la métrica a usar (volume, tvl, apr)
-# --------------------------------------------------
-def detect_metric(user_query: str, df: pd.DataFrame) -> str:
-    """
-    Retorna la columna (col) que más se ajuste a la consulta.
-    Por defecto, si no lo detecta, retorna la primera columna numérica.
-    """
-    lower_q = user_query.lower()
-    numeric_cols = [c for c in df.columns if str(df[c].dtype).startswith(("float", "int"))]
+    def get_defi_opportunities(self):
+        """Obtiene oportunidades DeFi desde DeFiLlama"""
+        try:
+            response = requests.get(self.defillama_api)
+            data = response.json()
+            # Filtrar solo pools de Solana
+            solana_pools = [
+                pool for pool in data['data']
+                if pool['chain'] == 'Solana'
+            ]
+            return solana_pools
+        except Exception as e:
+            st.error(f"Error al obtener oportunidades DeFi: {str(e)}")
+            return []
 
-    if "volume" in lower_q:
-        return "volume" if "volume" in numeric_cols else numeric_cols[0]
-    elif "tvl" in lower_q:
-        return "tvl" if "tvl" in numeric_cols else numeric_cols[0]
-    elif "apr" in lower_q:
-        return "apr" if "apr" in numeric_cols else numeric_cols[0]
-    else:
-        # Si no se encontró nada específico, devolver la primera columna numérica
-        return numeric_cols[0] if numeric_cols else None
+def calculate_additional_gains(portfolio, opportunities, time_in_months=12):
+    """Calcula las ganancias adicionales si se invierte en las oportunidades recomendadas"""
+    results = []
+    for token in portfolio.get('tokens', []):
+        symbol = token['symbol']
+        amount = token['amount']
+        apy_current = 0  # APY actual (asumimos 0 si no hay posición activa)
 
-# --------------------------------------------------
-# 5. Función para graficar
-# --------------------------------------------------
-def plot_with_streamlit_builtin_charts(df: pd.DataFrame, chart_type: str, metric_col: str):
-    """
-    Emplea st.bar_chart, st.line_chart o st.area_chart (nativos de Streamlit).
-    """
-    if df.empty:
-        st.warning("No hay datos para graficar.")
-        return
+        # Buscar la mejor oportunidad para este token
+        best_opportunity = max(
+            (op for op in opportunities if symbol in op['tokens']),
+            key=lambda x: x['apy'],
+            default=None
+        )
 
-    if metric_col not in df.columns:
-        st.warning(f"No se encontró la métrica '{metric_col}' en el DataFrame.")
+        if best_opportunity:
+            apy_recommended = best_opportunity['apy']
+            protocol = best_opportunity['protocol']
+
+            # Calcular ganancias adicionales
+            current_gain = amount * ((1 + apy_current / 100) ** (time_in_months / 12) - 1)
+            recommended_gain = amount * ((1 + apy_recommended / 100) ** (time_in_months / 12) - 1)
+            additional_gain = recommended_gain - current_gain
+
+            results.append({
+                "Token": symbol,
+                "Cantidad": amount,
+                "APY Actual (%)": apy_current,
+                "APY Recomendado (%)": apy_recommended,
+                "Ganancia Actual ($)": current_gain,
+                "Ganancia Recomendada ($)": recommended_gain,
+                "Ganancia Adicional ($)": additional_gain,
+                "Protocolo Recomendado": protocol
+            })
+
+    return pd.DataFrame(results)
+
+# Funciones para la interfaz
+def render_portfolio_section(portfolio):
+    """Renderiza la sección del portfolio"""
+    st.subheader("📊 Tu Portfolio")
+
+    if portfolio and 'tokens' in portfolio:
+        # Crear DataFrame para mostrar los tokens
+        df = pd.DataFrame(portfolio['tokens'])
+
+        # Mostrar gráfico de composición del portfolio
+        fig = px.pie(df, values='value', names='symbol', title='Composición del Portfolio')
+        st.plotly_chart(fig)
+
+        # Mostrar tabla de tokens
         st.dataframe(df)
-        return
-
-    # Ponemos 'pair' como índice para que aparezca en el eje X como categorías
-    df_plot = df.set_index("pair")
-
-    if chart_type == "bar":
-        st.bar_chart(df_plot[[metric_col]])
-    elif chart_type == "line":
-        st.line_chart(df_plot[[metric_col]])
-    elif chart_type == "area":
-        st.area_chart(df_plot[[metric_col]])
     else:
-        st.error("Tipo de gráfico no soportado (por ejemplo, pastel).")
+        st.warning("No se encontraron tokens en el portfolio")
 
-# --------------------------------------------------
-# 6. Interfaz principal
-# --------------------------------------------------
+def render_opportunities_section(opportunities):
+    """Renderiza la sección de oportunidades"""
+    st.subheader("💎 Oportunidades de Inversión")
+
+    if opportunities:
+        # Crear DataFrame para mostrar las oportunidades
+        df = pd.DataFrame(opportunities)
+
+        # Filtros interactivos
+        col1, col2 = st.columns(2)
+        with col1:
+            min_apy = st.slider("APY Mínimo (%)", 0, 100, 0)
+        with col2:
+            selected_protocols = st.multiselect(
+                "Protocolos",
+                options=df['protocol'].unique(),
+                default=df['protocol'].unique()
+            )
+
+        # Aplicar filtros
+        filtered_df = df[
+            (df['apy'] >= min_apy) &
+            (df['protocol'].isin(selected_protocols))
+        ]
+
+        # Mostrar gráfico de APY por protocolo
+        fig = px.bar(
+            filtered_df,
+            x='protocol',
+            y='apy',
+            title='APY por Protocolo'
+        )
+        st.plotly_chart(fig)
+
+        # Mostrar tabla de oportunidades
+        st.dataframe(filtered_df)
+    else:
+        st.warning("No se encontraron oportunidades de inversión")
+
+def render_additional_gains_section(portfolio, opportunities):
+    """Renderiza la sección de ganancias adicionales"""
+    st.subheader("📈 Ganancias Adicionales Potenciales")
+
+    # Calcular ganancias adicionales
+    df = calculate_additional_gains(portfolio, opportunities)
+
+    if not df.empty:
+        # Mostrar tabla de ganancias adicionales
+        st.dataframe(df)
+
+        # Mostrar gráfico de ganancias adicionales
+        fig = px.bar(
+            df,
+            x="Token",
+            y="Ganancia Adicional ($)",
+            color="Protocolo Recomendado",
+            title="Ganancias Adicionales por Token"
+        )
+        st.plotly_chart(fig)
+    else:
+        st.warning("No se encontraron ganancias adicionales para mostrar")
+
 def main():
-    st.title("Ejemplo con cálculos estadísticos y gráficos nativos de Streamlit")
+    # Título y descripción
+    st.title("🌟 Solana DeFi Advisor")
+    st.markdown("""
+    Este asistente te ayuda a analizar tu portfolio en Solana y encontrar las mejores oportunidades DeFi.
+    """)
 
-    df = load_sample_data()
-    st.write("### DataFrame de prueba")
-    st.dataframe(df)
+    # Inicializar clases
+    analyzer = PortfolioAnalyzer()
 
-    user_query = st.text_input(
-        "Ejemplo: 'Muéstrame la media del volume' o 'Quiero un gráfico de barras con el tvl'",
-        value="Muéstrame el máximo del volume"
-    )
+    # Sidebar para entrada de datos
+    with st.sidebar:
+        st.header("📝 Entrada de datos")
+        wallet_address = st.text_input(
+            "Dirección de Wallet Solana",
+            placeholder="Ingresa tu dirección de wallet..."
+        )
 
-    if st.button("Ejecutar consulta"):
-        if not user_query.strip():
-            st.warning("Por favor ingresa una instrucción válida.")
-            return
+        analyze_button = st.button("Analizar")
 
-        # Detecta si se solicita agregación
-        aggregator = detect_aggregation(user_query)
+    # Contenido principal
+    if analyze_button and wallet_address:
+        with st.spinner("Analizando tu portfolio..."):
+            # Obtener datos
+            portfolio = analyzer.get_portfolio(wallet_address)
+            opportunities = analyzer.get_defi_opportunities()
 
-        # Detecta la métrica (columna)
-        metric_col = detect_metric(user_query, df)
+            # Mostrar secciones
+            col1, col2 = st.columns(2)
+            with col1:
+                render_portfolio_section(portfolio)
+            with col2:
+                render_opportunities_section(opportunities)
 
-        if aggregator:
-            # El usuario pidió un cálculo estadístico
-            st.write(f"**Operación de agregación detectada:** {aggregator}")
-            st.write(f"**Métrica:** {metric_col}")
+            # Mostrar sección de ganancias adicionales
+            render_additional_gains_section(portfolio, opportunities)
 
-            if metric_col in df.columns:
-                result = df[metric_col].agg(aggregator)
-                st.success(f"El resultado de {aggregator} para '{metric_col}' es: **{result}**")
-            else:
-                st.warning(f"La columna '{metric_col}' no existe en el DataFrame.")
-                st.dataframe(df)
-        else:
-            # Si no hay agregación, interpretamos que quiere un gráfico
-            chart_type = detect_chart_type(user_query)
-            st.write(f"**Tipo de gráfico detectado:** {chart_type}")
-            st.write(f"**Métrica:** {metric_col}")
-            plot_with_streamlit_builtin_charts(df, chart_type, metric_col)
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    💡 **Nota**: Este es un asistente de inversión. Siempre DYOR (Do Your Own Research).
+    """)
 
 if __name__ == "__main__":
     main()
-
-# Created/Modified files during execution:
-print("app.py")
