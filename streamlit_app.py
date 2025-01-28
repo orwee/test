@@ -187,12 +187,17 @@ def process_defi_data(result):
 
 def main():
     st.set_page_config(
-        page_title="Solana DeFi Advisor",
-        page_icon="🌟",
+        page_title="Rocky by Orwee",
+        page_icon="https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp",
         layout="wide"
     )
 
-    st.title("🌟 Solana DeFi Advisor")
+    # Add logo and title in columns
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
+    with col2:
+        st.title("Rocky by Orwee")
 
     st.sidebar.header("Configuración")
     wallet_address = st.sidebar.text_input("Dirección de Wallet")
@@ -366,16 +371,22 @@ def main():
         else:
             st.error("No se pudieron obtener datos de DefiLlama")
 
-    # Añadir información adicional en el footer
+    # Update the footer section at the end of main():
     st.markdown("---")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.image("https://corp.orwee.io/wp-content/uploads/2023/07/cropped-imageonline-co-transparentimage-23-e1689783905238-300x300.webp", width=100)
+    with col2:
+        st.image("https://www.deepseek.com/_next/image?url=https%3A%2F%2Fcdn.deepseek.com%2Flogo.png&w=828&q=75", width=100)
+
     st.markdown(
         """
         <div style='text-align: center'>
-            <p>Desarrollado con ❤️ por Tu Nombre</p>
-            <p style='font-size: small'>Powered by Solana</p>
+            <p>Developed by Orwee | Powered by DeepSeek</p>
         </div>
         """,
         unsafe_allow_html=True
     )
+    
 if __name__ == "__main__":
     main()
