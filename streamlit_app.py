@@ -1,4 +1,4 @@
-import streamlit as st
+https://rocky-ai.streamlit.app/import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
@@ -213,6 +213,29 @@ def main():
     # Button to run the main analysis
     analyze_button = st.sidebar.button("Analyze with AI")
 
+    # "Visit Orwee" button in sidebar, below everything else
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(
+        """
+        <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
+            <button style="
+                background-color: #A199DA;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: 'IBM Plex Mono', monospace;
+                width: 100%;
+                margin: 10px 0;
+            ">
+                Visit Orwee.io 🌐
+            </button>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
+
     # If the user clicks on "Analyze with AI" and has provided a wallet address
     if analyze_button and wallet_address and api_key:
         result = get_user_defi_positions(wallet_address, api_key)
@@ -383,29 +406,7 @@ def main():
         else:
             st.error("Could not retrieve DefiLlama data.")
 
-    # "Visit Orwee" button in sidebar, below everything else
-    st.sidebar.markdown("---")
-    st.sidebar.markdown(
-        """
-        <a href="https://orwee.io" target="_blank" style="text-decoration: none;">
-            <button style="
-                background-color: #A199DA;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-family: 'IBM Plex Mono', monospace;
-                width: 100%;
-                margin: 10px 0;
-            ">
-                Visit Orwee.io 🌐
-            </button>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
-
+    
     # Footer elements
     st.markdown(
         """
