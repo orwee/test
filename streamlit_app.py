@@ -26,16 +26,12 @@ def generate_investment_analysis(current_position, alternatives):
     Available alternatives:
     {'\n'.join([f"- {alt['project']} on {alt['chain']}: {alt['symbol']} (APY: {alt['apy']:.2f}%, TVL: ${format_number(alt['tvlUsd'])})" for alt in alternatives])}
 
-    Please provide a concise analysis that includes:
-    1. Comparison of APYs and potential risks
-    2. Advantages and disadvantages of each alternative
-    3. Security and TVL considerations
-    4. A final recommendation based on the risk/benefit balance
+    Please provide a concise analysis (max 100 words) that including a comparison of APYs and potential risks between current and alternative positions
     """
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
