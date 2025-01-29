@@ -431,7 +431,7 @@ def main():
     st.markdown(
         """
         <div style='text-align: center; margin-top: 10px;'>
-            <p style='font-size:8px; color: #999999;'>
+            <p style='font-size:10px; color: #999999;'>
                 This content is for informational purposes only and does not constitute financial advice.
                 Neither Orwee nor DeepSeek accepts responsibility for any financial losses. Please do your own research before making investment decisions.
             </p>
