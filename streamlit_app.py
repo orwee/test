@@ -427,14 +427,13 @@ def main():
         unsafe_allow_html=True
     )
 
-    # Agrega el disclaimer de inversión justo debajo:
+    # Add your investment disclaimer (in English) below
     st.markdown(
         """
         <div style='text-align: center; margin-top: 10px;'>
-            <p style='font-size:0.9rem; color: #999999;'>
-                Este contenido es meramente informativo y no representa asesoría financiera.
-                Orwee y DeepSeek no se hacen responsables por cualquier pérdida resultante de inversión.
-                Realiza tu propia investigación antes de tomar decisiones financieras.
+            <p style='font-size:8px; color: #999999;'>
+                This content is for informational purposes only and does not constitute financial advice.
+                Neither Orwee nor DeepSeek accepts responsibility for any financial losses. Please do your own research before making investment decisions.
             </p>
         </div>
         """,
