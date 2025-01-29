@@ -26,7 +26,7 @@ def generate_investment_analysis(current_position, alternatives):
     Available alternatives:
     {'\n'.join([f"- {alt['project']} on {alt['chain']}: {alt['symbol']} (APY: {alt['apy']:.2f}%, TVL: ${format_number(alt['tvlUsd'])})" for alt in alternatives])}
 
-    Please provide a concise analysis (max 100 words) that including a comparison of APYs and potential risks between current and alternative positions
+    Please provide a concise analysis (max 100 words) that including a comparison of APYs and potential risks (of token, type of investment and protocol) between current and alternative positions
     """
 
     try:
